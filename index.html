@@ -75,15 +75,11 @@ body {
 .cat-card .accent-bar {
   position: absolute; left: 0; top: 0; width: 4px; height: 100%; border-radius: 4px 0 0 4px;
 }
-.cat-card.cat1 .accent-bar { background: var(--orange); }
-.cat-card.cat2 .accent-bar { background: var(--blue); }
 .cat-avatar {
   width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 28px; font-weight: 700; color: #fff;
 }
-.cat-card.cat1 .cat-avatar { background: var(--orange); }
-.cat-card.cat2 .cat-avatar { background: var(--blue); }
 .cat-main { flex: 1; min-width: 0; }
 .cat-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .cat-name { font-size: 18px; font-weight: 700; }
@@ -126,6 +122,7 @@ body {
 .quick-btn:active { transform: scale(0.96); }
 .quick-btn.primary { background: var(--orange); }
 .quick-btn.secondary { background: var(--blue); }
+.quick-btn.add-cat { background: var(--green); }
 
 /* 统计条 */
 .stat-strip { display: flex; gap: 6px; padding: 0 20px 20px; }
@@ -145,14 +142,13 @@ body {
 .form-row { margin-bottom: 18px; }
 .form-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
 
-.cat-toggle-row { display: flex; gap: 12px; }
+.cat-toggle-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .cat-toggle {
-  flex: 1; padding: 14px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  flex: 1; min-width: 80px; padding: 14px; border-radius: var(--radius-sm); border: 2px solid var(--border);
   text-align: center; cursor: pointer; transition: all .2s;
   font-size: 14px; font-weight: 600; background: var(--card);
 }
-.cat-toggle.checked-cat1 { border-color: var(--orange); background: var(--orange-light); color: var(--orange-dark); }
-.cat-toggle.checked-cat2 { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.cat-toggle.checked { border-color: var(--orange); background: var(--orange-light); color: var(--orange-dark); }
 
 .type-selector { display: flex; gap: 8px; flex-wrap: wrap; }
 .type-chip {
@@ -175,11 +171,17 @@ body {
   cursor: pointer; transition: all .2s;
 }
 .submit-btn:active { background: var(--orange-dark); }
+.danger-btn {
+  width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+  background: #e74c3c; color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all .2s; margin-top: 8px;
+}
+.danger-btn:active { background: #c0392b; }
 
 /* ====== 历史记录 ====== */
 .filter-row {
   display: flex; gap: 8px; padding: 16px 20px 0;
-  position: sticky; top: 0; background: var(--bg); z-index: 10;
+  position: sticky; top: 0; background: var(--bg); z-index: 10; flex-wrap: wrap;
 }
 .filter-chip {
   padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--border);
@@ -279,6 +281,11 @@ body {
 }
 .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
 .empty-state p { font-size: 14px; }
+.empty-state .empty-btn {
+  margin-top: 16px; padding: 12px 28px; border-radius: 24px;
+  background: var(--orange); color: #fff; border: none;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
 
 /* Calendar search */
 .cal-search { padding: 8px 20px; }
@@ -299,7 +306,7 @@ body {
 <div class="page active" id="page-dashboard">
   <div class="dashboard-header">
     <div class="greeting" id="greeting"></div>
-    <h1>喵星人管理 <span id="sync-indicator" style="font-size:12px;font-weight:400;opacity:0.8;cursor:pointer" onclick="doFullSync()">☁️ 未配置</span></h1>
+    <h1>喵星人管理 <span id="sync-indicator" style="font-size:12px;font-weight:400;opacity:0.8;cursor:pointer" onclick="doFullSync()">☁️ 已就绪</span></h1>
   </div>
 
   <div class="cat-cards" id="dashboard-cats"></div>
@@ -307,6 +314,7 @@ body {
 
   <div class="quick-actions">
     <button class="quick-btn primary" onclick="switchTab('record')">＋ 新增记录</button>
+    <button class="quick-btn add-cat" onclick="openAddCatModal()">🐱 添加猫咪</button>
     <button class="quick-btn secondary" onclick="switchTab('calendar')">📅 日历视图</button>
   </div>
 
@@ -319,10 +327,7 @@ body {
   <div class="form-card">
     <div class="form-row">
       <span class="form-label">猫咪（可多选）</span>
-      <div class="cat-toggle-row">
-        <div class="cat-toggle checked-cat1" id="rec-cat1-toggle" onclick="toggleRecCat(1)">猫咪一</div>
-        <div class="cat-toggle checked-cat2" id="rec-cat2-toggle" onclick="toggleRecCat(2)">猫咪二</div>
-      </div>
+      <div class="cat-toggle-row" id="rec-cat-toggles"></div>
     </div>
     <div class="form-row">
       <span class="form-label">记录类型</span>
@@ -343,10 +348,8 @@ body {
 
 <!-- ==================== 历史记录 ==================== -->
 <div class="page" id="page-history">
-  <div class="filter-row">
+  <div class="filter-row" id="hist-cat-filters">
     <div class="filter-chip" data-filter="all" onclick="setHistoryCat('all', this)">全部</div>
-    <div class="filter-chip active" data-filter="1" id="hist-cat1-chip" onclick="setHistoryCat('1', this)">猫咪一</div>
-    <div class="filter-chip" data-filter="2" id="hist-cat2-chip" onclick="setHistoryCat('2', this)">猫咪二</div>
   </div>
   <div class="filter-row" style="padding-top:4px;">
     <div class="filter-chip active" data-filter="all" onclick="setHistoryType('all', this)">全部类型</div>
@@ -388,7 +391,10 @@ body {
   </div>
 </div>
 
-<!-- ==================== 存档编辑弹窗 ==================== -->
+<!-- ==================== 猫咪添加/编辑弹窗 ==================== -->
+<div class="edit-modal" id="add-cat-modal" onclick="if(event.target===this)closeAddCatModal()">
+  <div class="edit-sheet" id="add-cat-sheet"></div>
+</div>
 <div class="edit-modal" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
   <div class="edit-sheet" id="edit-sheet"></div>
 </div>
@@ -423,24 +429,50 @@ const STORAGE_KEY = 'cat_manager_data_v3';
 const SUPABASE_URL = 'https://ctgauwdvffdhdkmtpnnr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Z2F1d2R2ZmZkaGRrbXRwbm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODQyMzMsImV4cCI6MjA5NjU2MDIzM30.A0PItTHvyzd2ZEdutWoS1gkekn-6BXuG0wPSjmAiEOg';
 
+// Cat color palette (rotated by index)
+const CAT_COLORS = ['#f0854b','#4a90d9','#27ae60','#8e44ad','#e67e22','#1abc9c','#e74c3c','#3498db','#2ecc71','#9b59b6'];
+function catColor(idx) { return CAT_COLORS[idx % CAT_COLORS.length]; }
+function catColorLight(idx) { return catColor(idx) + '20'; }
+
 function sbHeaders() {
   return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
 }
 
-function getDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{'1':{},'2':{}}, records:[] }; } catch(e) { return { cats:{'1':{},'2':{}}, records:[] }; } }
+function getDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{}, records:[] }; } catch(e) { return { cats:{}, records:[] }; } }
 function saveDB(db) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
   syncToCloud(db).catch(()=>{});
 }
+
+function generateCatId(db) {
+  const keys = Object.keys(db.cats);
+  let max = 0;
+  for (const k of keys) { const n = parseInt(k); if (!isNaN(n) && n > max) max = n; }
+  return String(max + 1);
+}
+
+function getCatIds(db) { return Object.keys(db.cats); }
+
+function getCatName(catId) { const db=getDB(); return db.cats[catId]?.name || '猫咪'+catId; }
+
+function calcAge(birthStr) {
+  if (!birthStr) return '';
+  const b = new Date(birthStr), n = new Date();
+  let y = n.getFullYear()-b.getFullYear();
+  const m = n.getMonth()-b.getMonth();
+  if (m<0||(m===0&&n.getDate()<b.getDate())) y--;
+  if (y<0) return '未出生';
+  const mo = ((n.getFullYear()-b.getFullYear())*12+n.getMonth()-b.getMonth()+(n.getDate()>=b.getDate()?0:-1))%12;
+  return y===0?mo+'个月':y+'岁'+(mo>0?mo+'个月':'');
+}
+
 async function syncToCloud(db) {
-  // Upsert cats
   const catsArray = Object.entries(db.cats).map(([id, cat]) => ({ id, name:cat.name||'', breed:cat.breed||'', birth:cat.birth||'', weight:cat.weight||'', avatar:cat.avatar||'' }));
   await fetch(SUPABASE_URL + '/rest/v1/cats', {
     method: 'POST',
     headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
     body: JSON.stringify(catsArray)
   });
-  // Delete all records then re-insert (avoids complex upsert with auto-increment ID)
   await fetch(SUPABASE_URL + '/rest/v1/records?select=id', { method: 'DELETE', headers: sbHeaders() });
   if (db.records.length > 0) {
     const recArray = db.records.map(r => ({ cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' }));
@@ -451,6 +483,7 @@ async function syncToCloud(db) {
     });
   }
 }
+
 async function pullFromCloud() {
   try {
     const [catsRes, recsRes] = await Promise.all([
@@ -462,12 +495,11 @@ async function pullFromCloud() {
     const recordsList = await recsRes.json();
     const cats = {};
     for (const c of catsList) { const { id, ...rest } = c; cats[id] = rest; }
-    if (!cats['1']) cats['1'] = {};
-    if (!cats['2']) cats['2'] = {};
     const records = recordsList.map(r => ({ id: 'r'+r.id, cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' })).sort((a,b) => new Date(b.date)-new Date(a.date));
     return { cats, records };
   } catch (e) { return null; }
 }
+
 let syncStatus='idle';
 
 async function doFullSync() {
@@ -479,29 +511,25 @@ async function doFullSync() {
     const localRecIds = new Set(local.records.map(r => r.id));
     const newRecs = cloud.records.filter(r => !localRecIds.has(r.id));
     const merged = [...local.records, ...newRecs].sort((a,b) => new Date(b.date)-new Date(a.date));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats: cloud.cats, records: merged }));
+    // Merge cats: cloud wins for existing IDs, keep local-only cats
+    const mergedCats = { ...local.cats };
+    for (const [id, cat] of Object.entries(cloud.cats)) {
+      mergedCats[id] = cat;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats: mergedCats, records: merged }));
     syncStatus='done';
     showToast(newRecs.length > 0 ? '已同步 ' + newRecs.length + ' 条新记录' : '数据已是最新');
   } catch(e) { syncStatus='error'; showToast('同步失败，请检查网络'); }
   updateSyncUI(); setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000);
 }
+
 function updateSyncUI() {
   const el = document.getElementById('sync-indicator');
   if (!el) return;
   const map = { idle: '☁️ 已就绪', syncing: '🔄 同步中…', done: '✅ 已同步', error: '❌ 同步失败' };
   el.textContent = map[syncStatus] || '';
 }
-function getCatName(n) { const db=getDB(); return db.cats[String(n)]?.name || ('猫咪'+n); }
-function calcAge(birthStr) {
-  if (!birthStr) return '';
-  const b = new Date(birthStr), n = new Date();
-  let y = n.getFullYear()-b.getFullYear();
-  const m = n.getMonth()-b.getMonth();
-  if (m<0||(m===0&&n.getDate()<b.getDate())) y--;
-  if (y<0) return '未出生';
-  const mo = ((n.getFullYear()-b.getFullYear())*12+n.getMonth()-b.getMonth()+(n.getDate()>=b.getDate()?0:-1))%12;
-  return y===0?mo+'个月':y+'岁'+(mo>0?mo+'个月':'');
-}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -519,79 +547,87 @@ function switchTab(name) {
   if (name==='dashboard') renderDashboard();
   if (name==='history') renderHistory();
   if (name==='calendar') renderCalendar();
-  if (name==='record') { updateRecCatLabels(); updateRecDate(); }
+  if (name==='record') { updateRecCatToggles(); updateRecDate(); }
 }
 
 // ====== Dashboard ======
 function renderDashboard() {
   const db = getDB(); const now = new Date();
-  // greeting
   const h = now.getHours();
   document.getElementById('greeting').textContent = h<12?'早上好 ☀️':h<18?'下午好 🌤':'晚上好 🌙';
 
-  // cats
-  let html = '';
-  for (let n=1; n<=2; n++) {
-    const c = db.cats[String(n)]||{}, name = c.name||('猫咪'+n);
-    const initial = name.charAt(0);
-    html += '<div class="cat-card cat'+n+'"><div class="accent-bar"></div>';
-    html += '<div class="cat-avatar">'+initial+'</div>';
-    html += '<div class="cat-main">';
-    html += '<div class="cat-name-row"><span class="cat-name">'+name+'</span>';
-    html += '<span style="font-size:12px;color:var(--text-muted)">'+(c.breed||'')+'</span>';
-    html += '<button class="cat-edit-btn" onclick="openEditModal('+n+')">编辑档案</button></div>';
-    html += '<div class="cat-meta">';
-    if (c.birth) html += '<span>'+calcAge(c.birth)+'</span>';
-    if (c.weight) html += '<span>'+c.weight+'kg</span>';
-    if (c.gender) html += '<span>'+c.gender+'</span>';
-    html += '</div>';
+  const catIds = getCatIds(db);
+  const catsContainer = document.getElementById('dashboard-cats');
 
-    // health bars
-    const catRecs = db.records.filter(r=>r.cat===String(n));
-    const latest={};
-    catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
-    const bars = [
-      { type:'deworm', label:'驱虫', max:90, color:'orange' },
-      { type:'vaccine', label:'疫苗', max:365, color:'blue' },
-      { type:'checkup', label:'体检', max:365, color:'green' },
-      { type:'litter', label:'猫砂', max:30, color:'purple' },
-    ];
-    html += '<div class="health-bars">';
-    bars.forEach(b=>{
-      const lr = latest[b.type];
-      const days = lr ? Math.floor((now-new Date(lr.date))/86400000) : 999;
-      const pct = Math.min(100, Math.round(days/b.max*100));
-      const cls = pct>=100?'warn':pct>=75?'near':'safe';
-      html += '<div class="health-bar-item"><span class="health-label">'+b.label+'</span>';
-      html += '<div class="health-track"><div class="health-fill '+cls+'" style="width:'+pct+'%"></div></div>';
-      html += '<span class="health-days">'+days+'天</span></div>';
-    });
-    html += '</div></div></div>';
-  }
-  document.getElementById('dashboard-cats').innerHTML = html;
-
-  // alerts
-  const alerts = [];
-  for (let n=1;n<=2;n++) {
-    const catRecs=db.records.filter(r=>r.cat===String(n)),latest={};
-    catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
-    const types={deworm:'驱虫',vaccine:'疫苗',checkup:'体检',litter:'猫砂'}, th={deworm:90,vaccine:365,checkup:365,litter:30};
-    for (const [t,r] of Object.entries(latest)) {
-      const days=Math.floor((now-new Date(r.date))/86400000);
-      if (days>th[t]) alerts.push(getCatName(String(n))+'的'+types[t]+'已超期 '+days+' 天（上次：'+r.date+'）');
-    }
-  }
-  const alertDiv = document.getElementById('dashboard-alerts');
-  if (alerts.length>0) {
-    alertDiv.innerHTML = alerts.map(a=>'<div class="alert-card"><div class="alert-dot"></div>'+a+'</div>').join('');
+  if (catIds.length === 0) {
+    catsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🐱</div><p>还没有添加猫咪</p><button class="empty-btn" onclick="openAddCatModal()">＋ 添加第一只猫咪</button></div>';
+    document.getElementById('dashboard-alerts').innerHTML = '';
   } else {
-    alertDiv.innerHTML = '';
+    let html = '';
+    catIds.forEach((catId, idx) => {
+      const c = db.cats[catId] || {}, name = c.name || '猫咪'+catId;
+      const initial = name.charAt(0);
+      const color = catColor(idx);
+      html += '<div class="cat-card"><div class="accent-bar" style="background:'+color+'"></div>';
+      html += '<div class="cat-avatar" style="background:'+color+'">'+initial+'</div>';
+      html += '<div class="cat-main">';
+      html += '<div class="cat-name-row"><span class="cat-name">'+name+'</span>';
+      html += '<span style="font-size:12px;color:var(--text-muted)">'+(c.breed||'')+'</span>';
+      html += '<button class="cat-edit-btn" onclick="openEditModal(\''+catId+'\')">编辑档案</button></div>';
+      html += '<div class="cat-meta">';
+      if (c.birth) html += '<span>'+calcAge(c.birth)+'</span>';
+      if (c.weight) html += '<span>'+c.weight+'kg</span>';
+      if (c.gender) html += '<span>'+c.gender+'</span>';
+      html += '</div>';
+
+      // health bars
+      const catRecs = db.records.filter(r=>r.cat_id===catId);
+      const latest={};
+      catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
+      const bars = [
+        { type:'deworm', label:'驱虫', max:90, color:'orange' },
+        { type:'vaccine', label:'疫苗', max:365, color:'blue' },
+        { type:'checkup', label:'体检', max:365, color:'green' },
+        { type:'litter', label:'猫砂', max:30, color:'purple' },
+      ];
+      html += '<div class="health-bars">';
+      bars.forEach(b=>{
+        const lr = latest[b.type];
+        const days = lr ? Math.floor((now-new Date(lr.date))/86400000) : 999;
+        const pct = Math.min(100, Math.round(days/b.max*100));
+        const cls = pct>=100?'warn':pct>=75?'near':'safe';
+        html += '<div class="health-bar-item"><span class="health-label">'+b.label+'</span>';
+        html += '<div class="health-track"><div class="health-fill '+cls+'" style="width:'+pct+'%"></div></div>';
+        html += '<span class="health-days">'+days+'天</span></div>';
+      });
+      html += '</div></div></div>';
+    });
+    catsContainer.innerHTML = html;
+
+    // alerts
+    const alerts = [];
+    catIds.forEach(catId => {
+      const catRecs=db.records.filter(r=>r.cat_id===catId),latest={};
+      catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
+      const types={deworm:'驱虫',vaccine:'疫苗',checkup:'体检',litter:'猫砂'}, th={deworm:90,vaccine:365,checkup:365,litter:30};
+      for (const [t,r] of Object.entries(latest)) {
+        const days=Math.floor((now-new Date(r.date))/86400000);
+        if (days>th[t]) alerts.push(getCatName(catId)+'的'+types[t]+'已超期 '+days+' 天（上次：'+r.date+'）');
+      }
+    });
+    const alertDiv = document.getElementById('dashboard-alerts');
+    if (alerts.length>0) {
+      alertDiv.innerHTML = alerts.map(a=>'<div class="alert-card"><div class="alert-dot"></div>'+a+'</div>').join('');
+    } else {
+      alertDiv.innerHTML = '';
+    }
   }
 
   // stats
   const counts = { deworm:0, vaccine:0, checkup:0, litter:0 };
   db.records.forEach(r=>{ if(counts[r.type]!==undefined) counts[r.type]++; });
   document.getElementById('stat-strip').innerHTML =
+    '<div class="stat-chip"><div class="chip-val">'+catIds.length+'</div><div class="chip-label">猫咪</div></div>'+
     '<div class="stat-chip"><div class="chip-val">'+db.records.length+'</div><div class="chip-label">总记录</div></div>'+
     '<div class="stat-chip"><div class="chip-val">'+counts.deworm+'</div><div class="chip-label">驱虫</div></div>'+
     '<div class="stat-chip"><div class="chip-val">'+counts.vaccine+'</div><div class="chip-label">疫苗</div></div>'+
@@ -599,27 +635,65 @@ function renderDashboard() {
     '<div class="stat-chip"><div class="chip-val">'+counts.litter+'</div><div class="chip-label">猫砂</div></div>';
 }
 
+// ====== Add Cat Modal ======
+function openAddCatModal() {
+  document.getElementById('add-cat-sheet').innerHTML = `
+    <h3>🐱 添加猫咪</h3>
+    <div class="form-row"><span class="form-label">名字 *</span><input class="form-input" id="add-name" placeholder="请输入名字" autocomplete="off"></div>
+    <div class="form-row"><span class="form-label">品种</span><input class="form-input" id="add-breed" placeholder="如：英短"></div>
+    <div class="form-row"><span class="form-label">性别</span>
+      <select class="form-input" id="add-gender"><option>公</option><option>母</option></select></div>
+    <div class="form-row"><span class="form-label">出生日期</span><input type="date" class="form-input" id="add-birth"></div>
+    <div class="form-row"><span class="form-label">体重（kg）</span><input type="number" class="form-input" id="add-weight" step="0.1" placeholder="如 4.5"></div>
+    <div class="form-row"><span class="form-label">毛色</span><input class="form-input" id="add-color" placeholder="如：银渐层"></div>
+    <div class="form-row"><span class="form-label">备注</span><textarea class="form-textarea" id="add-note" placeholder="性格、习惯等"></textarea></div>
+    <button class="submit-btn" onclick="saveAddCat()" style="margin-top:12px">添加</button>
+  `;
+  document.getElementById('add-cat-modal').classList.add('show');
+}
+function closeAddCatModal() { document.getElementById('add-cat-modal').classList.remove('show'); }
+function saveAddCat() {
+  const name = document.getElementById('add-name').value.trim();
+  if (!name) { showToast('请输入猫咪名字'); return; }
+  const db = getDB();
+  const newId = generateCatId(db);
+  db.cats[newId] = {
+    name: name,
+    breed: document.getElementById('add-breed').value.trim(),
+    gender: document.getElementById('add-gender').value,
+    birth: document.getElementById('add-birth').value,
+    weight: document.getElementById('add-weight').value,
+    color: document.getElementById('add-color').value.trim(),
+    note: document.getElementById('add-note').value.trim()
+  };
+  saveDB(db); closeAddCatModal(); renderDashboard(); updateRecCatToggles(); renderHistoryFilters();
+  showToast('已添加「'+name+'」');
+}
+
 // ====== Edit Modal ======
-function openEditModal(n) {
-  const db=getDB(),c=db.cats[String(n)]||{};
+function openEditModal(catId) {
+  const db=getDB(),c=db.cats[catId]||{};
   document.getElementById('edit-sheet').innerHTML = `
-    <h3>🐱 ${getCatName(String(n))} 档案</h3>
-    <div class="form-row"><span class="form-label">名字</span><input class="form-input" id="edit-name" value="${c.name||''}" placeholder="请输入名字"></div>
-    <div class="form-row"><span class="form-label">品种</span><input class="form-input" id="edit-breed" value="${c.breed||''}" placeholder="如：英短"></div>
+    <h3>🐱 ${getCatName(catId)} 档案</h3>
+    <div class="form-row"><span class="form-label">名字</span><input class="form-input" id="edit-name" value="${escAttr(c.name||'')}" placeholder="请输入名字"></div>
+    <div class="form-row"><span class="form-label">品种</span><input class="form-input" id="edit-breed" value="${escAttr(c.breed||'')}" placeholder="如：英短"></div>
     <div class="form-row"><span class="form-label">性别</span>
       <select class="form-input" id="edit-gender"><option ${c.gender==='母'?'selected':''}>公</option><option ${c.gender==='母'?'selected':''}>母</option></select></div>
     <div class="form-row"><span class="form-label">出生日期</span><input type="date" class="form-input" id="edit-birth" value="${c.birth||''}"></div>
     <div class="form-row"><span class="form-label">体重（kg）</span><input type="number" class="form-input" id="edit-weight" value="${c.weight||''}" step="0.1" placeholder="如 4.5"></div>
-    <div class="form-row"><span class="form-label">毛色</span><input class="form-input" id="edit-color" value="${c.color||''}" placeholder="如：银渐层"></div>
-    <div class="form-row"><span class="form-label">备注</span><textarea class="form-textarea" id="edit-note" placeholder="性格、习惯等">${c.note||''}</textarea></div>
-    <button class="submit-btn" onclick="saveEditModal(${n})" style="margin-top:12px">保存</button>
+    <div class="form-row"><span class="form-label">毛色</span><input class="form-input" id="edit-color" value="${escAttr(c.color||'')}" placeholder="如：银渐层"></div>
+    <div class="form-row"><span class="form-label">备注</span><textarea class="form-textarea" id="edit-note" placeholder="性格、习惯等">${escText(c.note||'')}</textarea></div>
+    <button class="submit-btn" onclick="saveEditModal('${catId}')" style="margin-top:12px">保存</button>
+    <button class="danger-btn" onclick="deleteCat('${catId}')">🗑 删除这只猫咪</button>
   `;
   document.getElementById('edit-modal').classList.add('show');
 }
+function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escText(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function closeEditModal() { document.getElementById('edit-modal').classList.remove('show'); }
-function saveEditModal(n) {
+function saveEditModal(catId) {
   const db = getDB();
-  db.cats[String(n)] = {
+  db.cats[catId] = {
     name: document.getElementById('edit-name').value.trim(),
     breed: document.getElementById('edit-breed').value.trim(),
     gender: document.getElementById('edit-gender').value,
@@ -628,12 +702,29 @@ function saveEditModal(n) {
     color: document.getElementById('edit-color').value.trim(),
     note: document.getElementById('edit-note').value.trim()
   };
-  saveDB(db); closeEditModal(); renderDashboard(); updateRecCatLabels();
-  renderHistory(); showToast('档案已保存');
+  saveDB(db); closeEditModal(); renderDashboard(); updateRecCatToggles(); renderHistoryFilters();
+  showToast('档案已保存');
+}
+
+function deleteCat(catId) {
+  const db = getDB();
+  const name = getCatName(catId);
+  if (!confirm('确定删除「'+name+'」吗？\n该猫咪关联的所有记录也会被删除，此操作不可恢复。')) return;
+  delete db.cats[catId];
+  db.records = db.records.filter(r => r.cat_id !== catId);
+  saveDB(db);
+  closeEditModal();
+  renderDashboard();
+  updateRecCatToggles();
+  renderHistoryFilters();
+  renderCalendar();
+  // Reset rec cat selection
+  recCats = new Set(getCatIds(db));
+  showToast('已删除「'+name+'」');
 }
 
 // ====== Record ======
-let recCats = {1:true,2:true}, recType='deworm';
+let recCats = new Set(), recType='deworm';
 const typeConfig = [
   { key:'deworm', label:'驱虫', icon:'💊', extra:'subtype', extraLabel:'驱虫类型', extraOpts:['内驱','外驱','内外同驱'] },
   { key:'vaccine', label:'疫苗', icon:'💉', extra:'vacType', extraLabel:'疫苗类型', extraOpts:['猫三联','狂犬','猫三联+狂犬','其他'] },
@@ -641,23 +732,33 @@ const typeConfig = [
   { key:'litter', label:'猫砂', icon:'🧹', extra:'', extraLabel:'', extraOpts:[] },
 ];
 
-function updateRecCatLabels() {
-  document.getElementById('rec-cat1-toggle').textContent = getCatName('1');
-  document.getElementById('rec-cat2-toggle').textContent = getCatName('2');
-  document.getElementById('hist-cat1-chip').textContent = getCatName('1');
-  document.getElementById('hist-cat2-chip').textContent = getCatName('2');
+function updateRecCatToggles() {
+  const db = getDB();
+  const catIds = getCatIds(db);
+  // Sync recCats
+  if (recCats.size === 0) { catIds.forEach(id => recCats.add(id)); }
+  const container = document.getElementById('rec-cat-toggles');
+  if (catIds.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px;">请先在总览页添加猫咪</span>';
+    return;
+  }
+  let html = '';
+  catIds.forEach((catId, idx) => {
+    const checked = recCats.has(catId);
+    html += '<div class="cat-toggle'+(checked?' checked':'')+'" id="rec-cat-'+catId+'-toggle" onclick="toggleRecCat(\''+catId+'\',this)" style="--cat-c:'+catColor(idx)+'">'+getCatName(catId)+'</div>';
+  });
+  container.innerHTML = html;
 }
-function toggleRecCat(n) {
-  recCats[n] = !recCats[n];
-  const el = document.getElementById('rec-cat'+n+'-toggle');
-  el.classList.toggle('checked-cat'+n);
+
+function toggleRecCat(catId, el) {
+  if (recCats.has(catId)) { recCats.delete(catId); el.classList.remove('checked'); }
+  else { recCats.add(catId); el.classList.add('checked'); }
 }
 function updateRecDate() {
   document.getElementById('rec-date').value = new Date().toISOString().slice(0,10);
 }
 
 function initRecordPage() {
-  // type selector
   let html = '';
   typeConfig.forEach((tc,i)=>{
     html += '<div class="type-chip'+(i===0?' selected':'')+'" data-key="'+tc.key+'" onclick="selectRecType(\''+tc.key+'\',this)">'+tc.icon+' '+tc.label+'</div>';
@@ -686,7 +787,7 @@ function updateRecExtra() {
   }
 }
 function addRecord() {
-  if (!recCats[1] && !recCats[2]) { showToast('请至少选择一只猫咪'); return; }
+  if (recCats.size === 0) { showToast('请至少选择一只猫咪'); return; }
   const date = document.getElementById('rec-date').value;
   const tc = typeConfig.find(t=>t.key===recType);
   let extraVal = '';
@@ -698,15 +799,17 @@ function addRecord() {
   const note = document.getElementById('rec-note').value.trim();
   const db = getDB();
   let count = 0;
-  const makeRec = (catId, off) => ({
-    id: Date.now()+off, cat: catId, type: recType, date,
-    subtype: recType==='deworm'?extraVal:'',
-    vacType: recType==='vaccine'?extraVal:'',
-    item: recType==='checkup'?extraVal:'',
-    note
+  let offset = 0;
+  recCats.forEach(catId => {
+    db.records.push({
+      id: Date.now()+offset, cat_id: catId, type: recType, date,
+      subtype: recType==='deworm'?extraVal:'',
+      vacType: recType==='vaccine'?extraVal:'',
+      item: recType==='checkup'?extraVal:'',
+      note
+    });
+    offset++; count++;
   });
-  if (recCats[1]) { db.records.push(makeRec('1',0)); count++; }
-  if (recCats[2]) { db.records.push(makeRec('2',1)); count++; }
   db.records.sort((a,b)=>new Date(b.date)-new Date(a.date));
   saveDB(db);
   document.getElementById('rec-note').value = '';
@@ -717,14 +820,23 @@ function addRecord() {
 
 // ====== History ======
 let histCat='all', histType='all';
+
+function renderHistoryFilters() {
+  const db = getDB();
+  const catIds = getCatIds(db);
+  const container = document.getElementById('hist-cat-filters');
+  let html = '<div class="filter-chip'+(histCat==='all'?' active':'')+'" data-filter="all" onclick="setHistoryCat(\'all\', this)">全部</div>';
+  catIds.forEach(catId => {
+    html += '<div class="filter-chip'+(histCat===catId?' active':'')+'" data-filter="'+catId+'" onclick="setHistoryCat(\''+catId+'\', this)">'+getCatName(catId)+'</div>';
+  });
+  container.innerHTML = html;
+  // If current histCat no longer exists, reset to 'all'
+  if (histCat !== 'all' && !db.cats[histCat]) { histCat = 'all'; }
+}
+
 function setHistoryCat(v, el) {
   histCat=v;
-  document.querySelectorAll('#page-history .filter-chip').forEach(c=>{
-    if (c.dataset.filter===v || (v==='all' && c.dataset.filter==='all' && c.parentElement===document.querySelector('#page-history .filter-row'))) {
-      // just handle first filter row
-    }
-  });
-  document.querySelectorAll('#page-history .filter-row:first-child .filter-chip').forEach(c=>c.classList.toggle('active', c.dataset.filter===v));
+  document.querySelectorAll('#hist-cat-filters .filter-chip').forEach(c=>c.classList.toggle('active', c.dataset.filter===v));
   renderHistory();
 }
 function setHistoryType(v, el) {
@@ -735,16 +847,15 @@ function setHistoryType(v, el) {
 function renderHistory() {
   const db=getDB(), kw=(document.getElementById('hist-search')?.value||'').trim().toLowerCase();
   let records = db.records.filter(r=>
-    (histCat==='all'||r.cat===histCat) && (histType==='all'||r.type===histType)
+    (histCat==='all'||r.cat_id===histCat) && (histType==='all'||r.type===histType)
   );
   if (kw) { records=records.filter(r=>{
-    const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+    const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
     return txt.includes(kw);
   });}
   const typeNames={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂'};
   const typeColors={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)'};
   const typeClass={deworm:'background:#fff0e8;color:#d46b26',vaccine:'background:#eaf3fd;color:#2a6bb5',checkup:'background:#eafaf1;color:#1e7a3a',litter:'background:#f5edf9;color:#6b3fa0'};
-  const catColors={1:'#d46b26',2:'#2a6bb5'};
   if (records.length===0) {
     document.getElementById('history-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无记录</p></div>';
     return;
@@ -755,12 +866,14 @@ function renderHistory() {
     if (r.type==='deworm') detail=r.subtype;
     else if (r.type==='vaccine') detail=r.vacType;
     else if (r.type==='checkup') detail=r.item;
+    const catIdx = getCatIds(db).indexOf(r.cat_id);
+    const cColor = catIdx >= 0 ? catColor(catIdx) : '#333';
     html += '<div class="timeline-item">';
     html += '<div class="timeline-dot" style="background:'+(typeColors[r.type]||'#999')+'"></div>';
     html += '<div class="timeline-content">';
     html += '<div class="timeline-date">'+r.date+'</div>';
     html += '<div class="timeline-body">';
-    html += '<span class="timeline-cat" style="color:'+(catColors[r.cat]||'#333')+'">'+getCatName(r.cat)+'</span>';
+    html += '<span class="timeline-cat" style="color:'+cColor+'">'+getCatName(r.cat_id)+'</span>';
     html += '<span class="timeline-type" style="'+typeClass[r.type]+'">'+typeNames[r.type]+'</span>';
     if (detail) html += '<span class="timeline-detail">'+detail+'</span>';
     html += '</div>';
@@ -803,7 +916,7 @@ function renderCalendar() {
   const dateMap={};
   db.records.forEach(r=>{
     if(!dateMap[r.date]) dateMap[r.date]={};
-    const k=r.type+'_'+r.cat;
+    const k=r.type+'_'+r.cat_id;
     if(!dateMap[r.date][k]) dateMap[r.date][k]=r.type;
   });
 
@@ -811,7 +924,7 @@ function renderCalendar() {
   let searchDates=new Set();
   if(kw){
     db.records.forEach(r=>{
-      const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+      const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
       if(txt.includes(kw)) searchDates.add(r.date);
     });
   }
@@ -858,7 +971,7 @@ function calShowDetail(ds) {
   let records=db.records.filter(r=>r.date===ds);
   const kw=(document.getElementById('cal-search-input')?.value||'').trim().toLowerCase();
   if(kw){records=records.filter(r=>{
-    const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+    const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
     return txt.includes(kw);
   });}
   const panel=document.getElementById('cal-detail-panel');
@@ -870,14 +983,14 @@ function calShowDetail(ds) {
   document.getElementById('cal-detail-list').innerHTML=records.map(r=>{
     let d='';
     if(r.type==='deworm')d=r.subtype;else if(r.type==='vaccine')d=r.vacType;else if(r.type==='checkup')d=r.item;
-    return '<div class="cal-detail-item"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0"></span><span class="timeline-cat">'+getCatName(r.cat)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26">'+tn[r.type]+'</span>'+d+' '+(r.note||'')+'</div>';
+    return '<div class="cal-detail-item"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0"></span><span class="timeline-cat">'+getCatName(r.cat_id)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26">'+tn[r.type]+'</span>'+d+' '+(r.note||'')+'</div>';
   }).join('');
 }
 function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}calSelected='';renderCalendar();}
 function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}calSelected='';renderCalendar();}
 function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calSelected=n.toISOString().slice(0,10);buildYearList();renderCalendar();}
 function calJump(){calYear=parseInt(document.getElementById('cal-year-sel').value);calMonth=parseInt(document.getElementById('cal-month-sel').value);calSelected='';renderCalendar();}
-function calSearch(){const kw=document.getElementById('cal-search-input').value.trim().toLowerCase();if(kw){const db=getDB();const m=db.records.filter(r=>{const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();return txt.includes(kw);});if(m.length>0){m.sort((a,b)=>new Date(a.date)-new Date(b.date));const d=new Date(m[0].date);calYear=d.getFullYear();calMonth=d.getMonth();calSelected=m[0].date;buildYearList();}}renderCalendar();}
+function calSearch(){const kw=document.getElementById('cal-search-input').value.trim().toLowerCase();if(kw){const db=getDB();const m=db.records.filter(r=>{const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();return txt.includes(kw);});if(m.length>0){m.sort((a,b)=>new Date(a.date)-new Date(b.date));const d=new Date(m[0].date);calYear=d.getFullYear();calMonth=d.getMonth();calSelected=m[0].date;buildYearList();}}renderCalendar();}
 
 // ====== Export / Import ======
 function exportData() {
@@ -891,16 +1004,21 @@ function importData() {
     const data = JSON.parse(txt);
     if (!data.cats || !data.records) throw new Error();
     if (confirm('导入将覆盖现有数据，确定继续？')) {
-      saveDB(data); renderDashboard(); renderHistory(); renderCalendar();
-      updateRecCatLabels(); showToast('导入成功');
+      saveDB(data);
+      recCats = new Set(getCatIds(getDB()));
+      renderDashboard(); renderHistory(); renderHistoryFilters();
+      updateRecCatToggles(); renderCalendar();
+      showToast('导入成功');
     }
   } catch(e) { showToast('数据格式错误'); }
 }
 function clearAll() {
   if (confirm('⚠️ 确定清空全部数据吗？\n建议先导出备份。此操作不可恢复。')) {
     if (confirm('再次确认：清空所有数据？')) {
-      saveDB({ cats:{'1':{},'2':{}}, records:[] });
-      renderDashboard(); renderHistory(); renderCalendar(); updateRecCatLabels();
+      saveDB({ cats:{}, records:[] });
+      recCats = new Set();
+      renderDashboard(); renderHistory(); renderHistoryFilters();
+      updateRecCatToggles(); renderCalendar();
       showToast('已清空');
     }
   }
@@ -909,31 +1027,46 @@ function clearAll() {
 // ====== Init ======
 document.addEventListener('DOMContentLoaded', async ()=>{
   initRecordPage();
-  updateRecCatLabels();
-  updateRecDate();
   initCal();
 
   // 从 Supabase 拉取最新数据
   syncStatus='syncing'; updateSyncUI();
   try {
     const cloud = await pullFromCloud();
+    const local = getDB();
     if (cloud) {
-      const local=getDB();
+      // Merge: cloud wins for same keys, keep local-only
+      const mergedCats = { ...local.cats };
+      for (const [id, cat] of Object.entries(cloud.cats)) {
+        mergedCats[id] = cat;
+      }
       const localIds=new Set(local.records.map(r=>r.id));
-      const merged=cloud.records.filter(r=>!localIds.has(r.id));
-      const all=[...local.records,...merged].sort((a,b)=>new Date(b.date)-new Date(a.date));
-      localStorage.setItem(STORAGE_KEY,JSON.stringify({cats:cloud.cats,records:all}));
+      const mergedRecs=cloud.records.filter(r=>!localIds.has(r.id));
+      const all=[...local.records,...mergedRecs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      localStorage.setItem(STORAGE_KEY,JSON.stringify({cats:mergedCats,records:all}));
       syncStatus='done';
-    } else {
-      syncStatus='idle';
+    }
+    // 初始化：如果都没有猫，创建默认猫
+    const currentDB = getDB();
+    if (Object.keys(currentDB.cats).length === 0) {
+      currentDB.cats['1'] = { name: '咪咪', breed: '', gender: '公', birth: '', weight: '', color: '', note: '欢迎来到喵星人管理！点击「编辑档案」完善信息' };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentDB));
+      syncToCloud(currentDB).catch(()=>{});
     }
   } catch(e) { syncStatus='idle'; }
   updateSyncUI();
+
+  // Init recCats
+  const initDB = getDB();
+  recCats = new Set(getCatIds(initDB));
+
+  updateRecCatToggles();
+  updateRecDate();
+  renderHistoryFilters();
   renderDashboard();
   renderCalendar();
   renderHistory();
 
-  // 3秒后恢复idle
   if (syncStatus==='done') setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000);
 });
 
