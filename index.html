@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>喵星人管理</title>
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="喵星人">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#f0854b">
 <style>
 :root {
@@ -16,6 +16,7 @@
   --blue: #4a90d9; --blue-light: #eaf3fd;
   --green: #27ae60; --green-light: #eafaf1;
   --purple: #8e44ad; --purple-light: #f5edf9;
+  --cyan: #00acc1; --cyan-light: #e0f7fa;
   --bg: #f8f6f3; --card: #fff; --text: #2c1810;
   --text-secondary: #8c7b6e; --text-muted: #b8a99a;
   --border: #ece6df; --shadow: 0 2px 16px rgba(44,24,16,0.06);
@@ -218,6 +219,62 @@ body {
   font-size: 11px; border: none; cursor: pointer;
 }
 
+/* 滑动删除样式 */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+
+.timeline-item {
+  display: flex; gap: 14px; padding: 16px;
+  background: var(--card); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  position: relative;
+  transition: transform 0.3s ease;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: pointer;
+}
+
+/* 删除按钮（隐藏在右侧） */
+.delete-action {
+  position: absolute;
+  right: -80px;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: right 0.3s ease;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  box-shadow: inset 2px 0 5px rgba(0,0,0,0.1);
+}
+
+/* 滑动状态 */
+.timeline-item.swiping {
+  transition: none;
+}
+
+.timeline-item.swiped {
+  transform: translateX(-80px);
+}
+
+.delete-action.visible {
+  right: 0;
+}
+
+/* 隐藏原来的删除按钮 */
+.timeline-del {
+  display: none;
+}
+
 /* ====== 日历 ====== */
 .cal-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -229,20 +286,30 @@ body {
   background: var(--card); cursor: pointer; font-size: 16px; display: flex;
   align-items: center; justify-content: center; color: var(--text);
 }
+.cal-goto-today { font-size: 12px; color: var(--orange); font-weight: 600; cursor: pointer; padding: 4px 10px; border-radius: 20px; background: var(--orange-light); display: none; }
 .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; padding: 0 16px; }
 .cal-day-header { text-align: center; font-size: 11px; color: var(--text-muted); padding: 8px 0; font-weight: 600; }
 .cal-day {
   aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; border-radius: var(--radius-xs); cursor: pointer;
+  justify-content: center; border-radius: var(--radius-xs);
   font-size: 14px; transition: all .15s; position: relative;
 }
 .cal-day.other-month { opacity: 0.3; }
 .cal-day.today { background: var(--orange-light); font-weight: 700; }
 .cal-day.selected { background: var(--orange); color: #fff; font-weight: 700; }
 .cal-day-dots { display: flex; gap: 3px; margin-top: 2px; }
+.cal-day-diff { font-size: 9px; color: var(--text-muted); line-height: 1; margin-top: 1px; }
 .cal-dot { width: 5px; height: 5px; border-radius: 50%; }
 .cal-dot.d { background: var(--orange); } .cal-dot.v { background: var(--blue); }
-.cal-dot.c { background: var(--green); } .cal-dot.l { background: var(--purple); }
+.cal-dot.c { background: var(--green); } .cal-dot.l { background: var(--purple); } .cal-dot.b { background: var(--cyan); }
+
+.cal-day-content { cursor: pointer; flex: 1; }
+.cal-add-btn {
+  position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--orange); color: white; border: none;
+  font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s;
+}
+.cal-day:hover .cal-add-btn { opacity: 1; }
 
 .cal-detail { margin: 12px 16px; padding: 16px; background: var(--card); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
 .cal-detail-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--orange); }
@@ -313,9 +380,8 @@ body {
   <div id="dashboard-alerts"></div>
 
   <div class="quick-actions">
-    <button class="quick-btn primary" onclick="switchTab('record')">＋ 新增记录</button>
+    <button class="quick-btn primary" onclick="switchTab('calendar')">📅 日历视图</button>
     <button class="quick-btn add-cat" onclick="openAddCatModal()">🐱 添加猫咪</button>
-    <button class="quick-btn secondary" onclick="switchTab('calendar')">📅 日历视图</button>
   </div>
 
   <div class="stat-strip" id="stat-strip"></div>
@@ -357,6 +423,7 @@ body {
     <div class="filter-chip" data-filter="vaccine" onclick="setHistoryType('vaccine', this)">疫苗</div>
     <div class="filter-chip" data-filter="checkup" onclick="setHistoryType('checkup', this)">体检</div>
     <div class="filter-chip" data-filter="litter" onclick="setHistoryType('litter', this)">猫砂</div>
+    <div class="filter-chip" data-filter="bath" onclick="setHistoryType('bath', this)">洗澡</div>
   </div>
   <div class="filter-row" style="padding-top:4px;">
     <input class="search-input" id="hist-search" placeholder="搜索关键词..." oninput="renderHistory()">
@@ -383,10 +450,14 @@ body {
     <div class="cal-nav-btn" onclick="calPrevMonth()">◀</div>
     <div class="cal-month-label" id="cal-month-label"></div>
     <div class="cal-nav-btn" onclick="calNextMonth()">▶</div>
+    <div class="cal-goto-today" id="cal-goto-today" onclick="calGoToday()">今天</div>
   </div>
   <div class="cal-grid" id="cal-grid"></div>
   <div class="cal-detail" id="cal-detail-panel" style="display:none;">
-    <div class="cal-detail-title" id="cal-detail-title"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="cal-detail-title" id="cal-detail-title"></div>
+      <button class="quick-btn primary" onclick="quickAddRecord(calSelected)" style="padding:6px 12px;font-size:12px;">+ 新增记录</button>
+    </div>
     <div id="cal-detail-list"></div>
   </div>
 </div>
@@ -408,10 +479,7 @@ body {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     <span>总览</span>
   </div>
-  <div class="tabbar-item" data-tab="record" onclick="switchTab('record')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    <span>记录</span>
-  </div>
+
   <div class="tabbar-item" data-tab="calendar" onclick="switchTab('calendar')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     <span>日历</span>
@@ -547,7 +615,6 @@ function switchTab(name) {
   if (name==='dashboard') renderDashboard();
   if (name==='history') renderHistory();
   if (name==='calendar') renderCalendar();
-  if (name==='record') { updateRecCatToggles(); updateRecDate(); }
 }
 
 // ====== Dashboard ======
@@ -589,6 +656,7 @@ function renderDashboard() {
         { type:'vaccine', label:'疫苗', max:365, color:'blue' },
         { type:'checkup', label:'体检', max:365, color:'green' },
         { type:'litter', label:'猫砂', max:30, color:'purple' },
+        { type:'bath', label:'洗澡', max:30, color:'cyan' },
       ];
       html += '<div class="health-bars">';
       bars.forEach(b=>{
@@ -609,7 +677,7 @@ function renderDashboard() {
     catIds.forEach(catId => {
       const catRecs=db.records.filter(r=>r.cat_id===catId),latest={};
       catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
-      const types={deworm:'驱虫',vaccine:'疫苗',checkup:'体检',litter:'猫砂'}, th={deworm:90,vaccine:365,checkup:365,litter:30};
+      const types={deworm:'驱虫',vaccine:'疫苗',checkup:'体检',litter:'猫砂',bath:'洗澡'}, th={deworm:90,vaccine:365,checkup:365,litter:30,bath:30};
       for (const [t,r] of Object.entries(latest)) {
         const days=Math.floor((now-new Date(r.date))/86400000);
         if (days>th[t]) alerts.push(getCatName(catId)+'的'+types[t]+'已超期 '+days+' 天（上次：'+r.date+'）');
@@ -624,7 +692,7 @@ function renderDashboard() {
   }
 
   // stats
-  const counts = { deworm:0, vaccine:0, checkup:0, litter:0 };
+  const counts = { deworm:0, vaccine:0, checkup:0, litter:0, bath:0 };
   db.records.forEach(r=>{ if(counts[r.type]!==undefined) counts[r.type]++; });
   document.getElementById('stat-strip').innerHTML =
     '<div class="stat-chip"><div class="chip-val">'+catIds.length+'</div><div class="chip-label">猫咪</div></div>'+
@@ -730,6 +798,7 @@ const typeConfig = [
   { key:'vaccine', label:'疫苗', icon:'💉', extra:'vacType', extraLabel:'疫苗类型', extraOpts:['猫三联','狂犬','猫三联+狂犬','其他'] },
   { key:'checkup', label:'体检', icon:'🩺', extra:'item', extraLabel:'体检项目', extraOpts:[] },
   { key:'litter', label:'猫砂', icon:'🧹', extra:'', extraLabel:'', extraOpts:[] },
+  { key:'bath', label:'洗澡', icon:'🛁', extra:'', extraLabel:'', extraOpts:[] },
 ];
 
 function updateRecCatToggles() {
@@ -800,9 +869,20 @@ function addRecord() {
   const db = getDB();
   let count = 0;
   let offset = 0;
+  
+  // 调试信息
+  console.log('添加记录 - 选中的猫咪数量:', recCats.size);
+  console.log('选中的猫咪ID:', Array.from(recCats));
+  console.log('记录类型:', recType);
+  console.log('额外值:', extraVal);
+  console.log('日期:', date);
+  
   recCats.forEach(catId => {
+    const recordId = Date.now() + offset;
+    console.log('为猫咪', catId, '创建记录, ID:', recordId);
+    
     db.records.push({
-      id: Date.now()+offset, cat_id: catId, type: recType, date,
+      id: recordId, cat_id: catId, type: recType, date,
       subtype: recType==='deworm'?extraVal:'',
       vacType: recType==='vaccine'?extraVal:'',
       item: recType==='checkup'?extraVal:'',
@@ -810,11 +890,22 @@ function addRecord() {
     });
     offset++; count++;
   });
+  
+  console.log('添加前的记录总数:', db.records.length);
   db.records.sort((a,b)=>new Date(b.date)-new Date(a.date));
   saveDB(db);
+  console.log('添加后的记录总数:', db.records.length);
+  
   document.getElementById('rec-note').value = '';
   if (tc.extra==='item') document.getElementById('rec-extra-val').value = '';
   showToast('已添加 '+count+' 条记录');
+  
+  // 清空选中的猫咪
+  recCats.clear();
+  document.querySelectorAll('#rec-cat-toggles .cat-toggle.checked').forEach(el => {
+    el.classList.remove('checked');
+  });
+  
   renderDashboard();
 }
 
@@ -850,12 +941,12 @@ function renderHistory() {
     (histCat==='all'||r.cat_id===histCat) && (histType==='all'||r.type===histType)
   );
   if (kw) { records=records.filter(r=>{
-    const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+    const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 洗澡 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
     return txt.includes(kw);
   });}
-  const typeNames={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂'};
-  const typeColors={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)'};
-  const typeClass={deworm:'background:#fff0e8;color:#d46b26',vaccine:'background:#eaf3fd;color:#2a6bb5',checkup:'background:#eafaf1;color:#1e7a3a',litter:'background:#f5edf9;color:#6b3fa0'};
+  const typeNames={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂',bath:'洗澡'};
+  const typeColors={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)',bath:'var(--cyan)'};
+  const typeClass={deworm:'background:#fff0e8;color:#d46b26',vaccine:'background:#eaf3fd;color:#2a6bb5',checkup:'background:#eafaf1;color:#1e7a3a',litter:'background:#f5edf9;color:#6b3fa0',bath:'background:#e0f7fa;color:#00838f'};
   if (records.length===0) {
     document.getElementById('history-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无记录</p></div>';
     return;
@@ -868,7 +959,10 @@ function renderHistory() {
     else if (r.type==='checkup') detail=r.item;
     const catIdx = getCatIds(db).indexOf(r.cat_id);
     const cColor = catIdx >= 0 ? catColor(catIdx) : '#333';
-    html += '<div class="timeline-item">';
+    
+    html += '<div class="swipe-container" data-record-id="' + r.id + '">';
+    html += '<div class="delete-action" onclick="confirmDeleteRecord(' + r.id + ', this)">删除</div>';
+    html += '<div class="timeline-item" data-record-id="' + r.id + '">';
     html += '<div class="timeline-dot" style="background:'+(typeColors[r.type]||'#999')+'"></div>';
     html += '<div class="timeline-content">';
     html += '<div class="timeline-date">'+r.date+'</div>';
@@ -879,16 +973,163 @@ function renderHistory() {
     html += '</div>';
     if (r.note) html += '<div class="timeline-note">'+r.note+'</div>';
     html += '</div>';
-    html += '<button class="timeline-del" onclick="deleteRecord('+r.id+')">删除</button>';
-    html += '</div>';
+    html += '</div>'; // 关闭 timeline-item
+    html += '</div>'; // 关闭 swipe-container
   });
   document.getElementById('history-list').innerHTML = html;
+  
+  // 初始化滑动事件
+  initSwipeEvents();
 }
+
+// 滑动删除相关函数
+function initSwipeEvents() {
+  const swipeContainers = document.querySelectorAll('.swipe-container');
+  swipeContainers.forEach(container => {
+    const timelineItem = container.querySelector('.timeline-item');
+    const deleteAction = container.querySelector('.delete-action');
+    let startX = 0, currentX = 0, isDragging = false, isSwiped = false;
+    
+    // 触摸事件
+    timelineItem.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX;
+      isDragging = true;
+      timelineItem.style.transition = 'none';
+    }, { passive: true });
+    
+    timelineItem.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      currentX = e.touches[0].clientX;
+      const diff = startX - currentX;
+      if (diff < 0) return;
+      
+      const translateX = Math.min(diff, 80);
+      timelineItem.style.transform = 'translateX(-' + translateX + 'px)';
+      
+      if (translateX > 40) {
+        deleteAction.classList.add('visible');
+      } else {
+        deleteAction.classList.remove('visible');
+      }
+    }, { passive: true });
+    
+    timelineItem.addEventListener('touchend', function() {
+      if (!isDragging) return;
+      isDragging = false;
+      timelineItem.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      
+      const currentTranslate = parseInt(timelineItem.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+      if (currentTranslate > 40) {
+        timelineItem.style.transform = 'translateX(-80px)';
+        timelineItem.classList.add('swiped');
+        isSwiped = true;
+        deleteAction.classList.add('visible');
+      } else {
+        timelineItem.style.transform = '';
+        timelineItem.classList.remove('swiped');
+        isSwiped = false;
+        deleteAction.classList.remove('visible');
+      }
+    }, { passive: true });
+    
+    // 鼠标事件
+    timelineItem.addEventListener('mousedown', function(e) {
+      startX = e.clientX;
+      isDragging = true;
+      timelineItem.style.transition = 'none';
+    });
+    
+    timelineItem.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      currentX = e.clientX;
+      const diff = startX - currentX;
+      if (diff < 0) return;
+      
+      const translateX = Math.min(diff, 80);
+      timelineItem.style.transform = 'translateX(-' + translateX + 'px)';
+      
+      if (translateX > 40) {
+        deleteAction.classList.add('visible');
+      } else {
+        deleteAction.classList.remove('visible');
+      }
+    });
+    
+    timelineItem.addEventListener('mouseup', function() {
+      if (!isDragging) return;
+      isDragging = false;
+      timelineItem.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      
+      const currentTranslate = parseInt(timelineItem.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+      if (currentTranslate > 40) {
+        timelineItem.style.transform = 'translateX(-80px)';
+        timelineItem.classList.add('swiped');
+        isSwiped = true;
+        deleteAction.classList.add('visible');
+      } else {
+        timelineItem.style.transform = '';
+        timelineItem.classList.remove('swiped');
+        isSwiped = false;
+        deleteAction.classList.remove('visible');
+      }
+    });
+    
+    timelineItem.addEventListener('mouseleave', function() {
+      if (isDragging) {
+        isDragging = false;
+        timelineItem.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        timelineItem.style.transform = '';
+        timelineItem.classList.remove('swiped');
+        deleteAction.classList.remove('visible');
+      }
+    });
+    
+    // 点击已滑开的项目：关闭
+    timelineItem.addEventListener('click', function(e) {
+      if (isSwiped) {
+        timelineItem.style.transform = '';
+        timelineItem.classList.remove('swiped');
+        isSwiped = false;
+        deleteAction.classList.remove('visible');
+        e.stopPropagation();
+      }
+    });
+  });
+}
+
+function confirmDeleteRecord(id, deleteBtn) {
+  if (confirm('确定删除这条记录吗？')) {
+    deleteRecord(id);
+  } else {
+    // 取消删除，恢复原状
+    const container = deleteBtn.closest('.swipe-container');
+    if (container) {
+      const timelineItem = container.querySelector('.timeline-item');
+      const deleteAction = container.querySelector('.delete-action');
+      timelineItem.style.transform = '';
+      timelineItem.classList.remove('swiped');
+      deleteAction.classList.remove('visible');
+    }
+  }
+}
+
 function deleteRecord(id) {
-  if (!confirm('确定删除这条记录吗？')) return;
+  console.log('deleteRecord called with id:', id, 'type:', typeof id);
+  console.log('Deleting record with id:', id);
   const db=getDB();
-  db.records = db.records.filter(r=>r.id!==id);
-  saveDB(db); renderHistory(); renderDashboard(); renderCalendar();
+  console.log('Before delete - total records:', db.records.length);
+  db.records = db.records.filter(r=>{
+    console.log('Checking record', r.id, 'type:', typeof r.id, 'matches?', r.id !== id);
+    return r.id !== id;
+  });
+  console.log('After delete - total records:', db.records.length);
+  saveDB(db); 
+  // 重新渲染所有页面
+  renderHistory(); 
+  renderDashboard(); 
+  renderCalendar();
+  // 如果当前在日历详情面板，需要更新详情
+  if (calSelected) calShowDetail(calSelected);
   showToast('已删除');
 }
 
@@ -912,6 +1153,14 @@ function renderCalendar() {
   document.getElementById('cal-month-label').textContent = calYear+'年 '+(calMonth+1)+'月';
   document.getElementById('cal-year-sel').value = calYear;
   document.getElementById('cal-month-sel').value = calMonth;
+  // 显示/隐藏"回到今天"按钮
+  const now = new Date();
+  const gotoTodayBtn = document.getElementById('cal-goto-today');
+  if (calMonth !== now.getMonth() || calYear !== now.getFullYear()) {
+    gotoTodayBtn.style.display = 'block';
+  } else {
+    gotoTodayBtn.style.display = 'none';
+  }
   const db=getDB();
   const dateMap={};
   db.records.forEach(r=>{
@@ -941,7 +1190,7 @@ function renderCalendar() {
   const dim= new Date(py,pm,0).getDate();
   for(let i=firstDay-1;i>=0;i--){
     const d=dim-i, ds=ym(py,pm,d);
-    html+='<div class="cal-day other-month" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div>';
+    html+='<div class="cal-day other-month"><div class="cal-day-content" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div><button class="cal-add-btn" onclick="quickAddRecord(\''+ds+'\')">+</button></div>';
   }
   for(let d=1;d<=daysInMonth;d++){
     const ds=ym(calYear,calMonth+1,d);
@@ -951,16 +1200,25 @@ function renderCalendar() {
     const dm=dateMap[ds];
     let dots='';
     if(dm){
-      const short={deworm:'d',vaccine:'v',checkup:'c',litter:'l'};
+      const short={deworm:'d',vaccine:'v',checkup:'c',litter:'l',bath:'b'};
       Object.values(dm).forEach(t=>dots+='<div class="cal-dot '+short[t]+'"></div>');
     }
-    html+='<div class="'+cls+'" onclick="calSelect(\''+ds+'\')"><span>'+(searchDates.has(ds)?'·':'')+d+'</span><div class="cal-day-dots">'+dots+'</div></div>';
+    // 计算距离今天的天数差
+    let dayDiff = '';
+    if (ds !== today) {
+      const diff = Math.floor((new Date(ds) - new Date(today)) / 86400000);
+      if (diff === -1) dayDiff = '昨天';
+      else if (diff < 0) dayDiff = Math.abs(diff) + '天前';
+      else if (diff === 1) dayDiff = '明天';
+      else if (diff > 0) dayDiff = diff + '天后';
+    }
+    html+='<div class="'+cls+'"><div class="cal-day-content" onclick="calSelect(\''+ds+'\')"><span>'+(searchDates.has(ds)?'·':'')+d+'</span><div class="cal-day-dots">'+dots+'</div><div class="cal-day-diff">'+dayDiff+'</div></div><button class="cal-add-btn" onclick="quickAddRecord(\''+ds+'\')">+</button></div>';
   }
   const total=firstDay+daysInMonth, rem=total%7===0?0:7-(total%7);
   const nm=calMonth===11?1:calMonth+2, ny=calMonth===11?calYear+1:calYear;
   for(let d=1;d<=rem;d++){
     const ds=ym(ny,nm,d);
-    html+='<div class="cal-day other-month" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div>';
+    html+='<div class="cal-day other-month"><div class="cal-day-content" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div><button class="cal-add-btn" onclick="quickAddRecord(\''+ds+'\')">+</button></div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
   if (calSelected) calShowDetail(calSelected);
@@ -977,12 +1235,31 @@ function calShowDetail(ds) {
   const panel=document.getElementById('cal-detail-panel');
   if(records.length===0){panel.style.display='none';return;}
   panel.style.display='';
-  document.getElementById('cal-detail-title').textContent=ds+' 共'+records.length+'条';
-  const tn={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂'};
-  const tc={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)'};
+  // 计算距离今天的天数
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  const todayMonth = today.getMonth();
+  const todayYear = today.getFullYear();
+  const gotoTodayBtn = document.getElementById('cal-goto-today');
+  if (calMonth !== todayMonth || calYear !== todayYear) {
+    gotoTodayBtn.style.display = 'block';
+  } else {
+    gotoTodayBtn.style.display = 'none';
+  }
+  let dayInfo = '';
+  if (ds !== todayStr) {
+    const diff = Math.floor((new Date(ds) - new Date(todayStr)) / 86400000);
+    if (diff === -1) dayInfo = '（昨天）';
+    else if (diff < 0) dayInfo = '（' + Math.abs(diff) + '天前）';
+    else if (diff === 1) dayInfo = '（明天）';
+    else if (diff > 0) dayInfo = '（' + diff + '天后）';
+  }
+  document.getElementById('cal-detail-title').textContent=ds + dayInfo + ' 共'+records.length+'条';
+  const tn={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂',bath:'洗澡'};
+  const tc={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)',bath:'var(--cyan)'};
   document.getElementById('cal-detail-list').innerHTML=records.map(r=>{
     let d='';
-    if(r.type==='deworm')d=r.subtype;else if(r.type==='vaccine')d=r.vacType;else if(r.type==='checkup')d=r.item;
+    if(r.type==='deworm')d=r.subtype;else if(r.type==='vaccine')d=r.vacType;else if(r.type==='checkup')d=r.item;else if(r.type==='bath')d='';
     return '<div class="cal-detail-item"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0"></span><span class="timeline-cat">'+getCatName(r.cat_id)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26">'+tn[r.type]+'</span>'+d+' '+(r.note||'')+'</div>';
   }).join('');
 }
@@ -990,7 +1267,23 @@ function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}calSele
 function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}calSelected='';renderCalendar();}
 function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calSelected=n.toISOString().slice(0,10);buildYearList();renderCalendar();}
 function calJump(){calYear=parseInt(document.getElementById('cal-year-sel').value);calMonth=parseInt(document.getElementById('cal-month-sel').value);calSelected='';renderCalendar();}
-function calSearch(){const kw=document.getElementById('cal-search-input').value.trim().toLowerCase();if(kw){const db=getDB();const m=db.records.filter(r=>{const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();return txt.includes(kw);});if(m.length>0){m.sort((a,b)=>new Date(a.date)-new Date(b.date));const d=new Date(m[0].date);calYear=d.getFullYear();calMonth=d.getMonth();calSelected=m[0].date;buildYearList();}}renderCalendar();}
+function calSearch(){const kw=document.getElementById('cal-search-input').value.trim().toLowerCase();if(kw){const db=getDB();const m=db.records.filter(r=>{const txt=(getCatName(r.cat_id)+' 驱虫 疫苗 体检 猫砂 洗澡 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();return txt.includes(kw);});if(m.length>0){m.sort((a,b)=>new Date(a.date)-new Date(b.date));const d=new Date(m[0].date);calYear=d.getFullYear();calMonth=d.getMonth();calSelected=m[0].date;buildYearList();}}renderCalendar();}
+
+// 快速添加记录
+function quickAddRecord(date) {
+  // 设置日期
+  document.getElementById('rec-date').value = date;
+  // 直接显示记录页面（不通过 switchTab）
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-record').classList.add('active');
+  // 更新标签栏状态
+  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+  // 滚动到顶部
+  window.scrollTo(0, 0);
+  // 更新记录页面的猫咪选择和日期
+  updateRecCatToggles();
+  updateRecDate();
+}
 
 // ====== Export / Import ======
 function exportData() {
