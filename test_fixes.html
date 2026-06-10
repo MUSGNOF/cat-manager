@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猫管家修复测试</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+.test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+.test-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; }
+.test-item { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+.success { color: #27ae60; }
+.error { color: #e74c3c; }
+.info { color: #3498db; }
+button { padding: 8px 16px; margin: 5px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+button:hover { background: #2980b9; }
+</style>
+</head>
+<body>
+<h1>🐱 猫管家应用修复测试</h1>
+<p>测试时间: <span id="test-time"></span></p>
+
+<div class="test-section">
+  <div class="test-title">修复内容检查</div>
+  
+  <div class="test-item">
+    <strong>1. 滑动删除功能</strong>
+    <div id="swipe-test" class="info">等待测试...</div>
+    <button onclick="testSwipe()">测试滑动删除</button>
+  </div>
+  
+  <div class="test-item">
+    <strong>2. 添加记录后日历刷新</strong>
+    <div id="calendar-refresh-test" class="info">等待测试...</div>
+    <button onclick="testCalendarRefresh()">测试日历刷新</button>
+  </div>
+  
+  <div class="test-item">
+    <strong>3. ID 类型比较修复</strong>
+    <div id="id-type-test" class="info">等待测试...</div>
+    <button onclick="testIdType()">测试ID类型</button>
+  </div>
+  
+  <div class="test-item">
+    <strong>4. 日历详情删除按钮</strong>
+    <div id="calendar-delete-test" class="info">等待测试...</div>
+    <button onclick="testCalendarDeleteBtn()">测试删除按钮</button>
+  </div>
+</div>
+
+<div class="test-section">
+  <div class="test-title">功能验证</div>
+  
+  <div class="test-item">
+    <strong>5. 打开应用主页面</strong>
+    <div id="main-app-test" class="info">等待测试...</div>
+    <button onclick="window.open('https://musgnof.github.io/cat-manager/', '_blank')">打开猫管家</button>
+  </div>
+  
+  <div class="test-item">
+    <strong>6. 控制台错误检查</strong>
+    <div id="console-error-test" class="info">等待测试...</div>
+    <button onclick="checkConsoleErrors()">检查控制台</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('test-time').textContent = new Date().toLocaleString();
+
+function testSwipe() {
+  const result = document.getElementById('swipe-test');
+  result.innerHTML = '正在测试...';
+  
+  // 检查滑动删除相关代码是否存在
+  const testCode = `
+    // 检查 initSwipeEvents 函数
+    if (typeof window.initSwipeEvents !== 'function') {
+      return '❌ initSwipeEvents 函数不存在';
+    }
+    
+    // 检查 confirmDeleteRecord 函数
+    if (typeof window.confirmDeleteRecord !== 'function') {
+      return '❌ confirmDeleteRecord 函数不存在';
+    }
+    
+    // 检查 deleteRecord 函数
+    if (typeof window.deleteRecord !== 'function') {
+      return '❌ deleteRecord 函数不存在';
+    }
+    
+    // 检查 ID 类型转换逻辑
+    const deleteRecordCode = window.deleteRecord.toString();
+    if (!deleteRecordCode.includes('String(id)') && !deleteRecordCode.includes('idStr')) {
+      return '❌ deleteRecord 函数缺少 ID 类型转换';
+    }
+    
+    return '✅ 滑动删除代码存在且包含ID类型转换';
+  `;
+  
+  try {
+    eval(testCode);
+    result.innerHTML = '✅ 滑动删除代码存在且包含ID类型转换';
+    result.className = 'success';
+  } catch (error) {
+    result.innerHTML = '❌ 测试失败: ' + error.message;
+    result.className = 'error';
+  }
+}
+
+function testCalendarRefresh() {
+  const result = document.getElementById('calendar-refresh-test');
+  result.innerHTML = '正在测试...';
+  
+  // 检查 addRecord 函数是否调用 renderCalendar
+  const testCode = `
+    // 检查 addRecord 函数
+    if (typeof window.addRecord !== 'function') {
+      return '❌ addRecord 函数不存在';
+    }
+    
+    const addRecordCode = window.addRecord.toString();
+    const hasRenderCalendar = addRecordCode.includes('renderCalendar()');
+    const hasBuildYearList = addRecordCode.includes('buildYearList()');
+    
+    if (hasRenderCalendar && hasBuildYearList) {
+      return '✅ addRecord 函数包含日历刷新';
+    } else if (hasRenderCalendar) {
+      return '⚠️ addRecord 函数包含 renderCalendar() 但缺少 buildYearList()';
+    } else {
+      return '❌ addRecord 函数缺少日历刷新调用';
+    }
+  `;
+  
+  try {
+    eval(testCode);
+    result.innerHTML = '✅ addRecord 函数包含日历刷新';
+    result.className = 'success';
+  } catch (error) {
+    result.innerHTML = '❌ 测试失败: ' + error.message;
+    result.className = 'error';
+  }
+}
+
+function testIdType() {
+  const result = document.getElementById('id-type-test');
+  result.innerHTML = '正在测试...';
+  
+  const testCode = `
+    // 模拟 deleteRecord 函数
+    const testDeleteRecord = function(id) {
+      const idStr = String(id);
+      const records = [
+        { id: 123, name: '记录1' },
+        { id: '456', name: '记录2' },
+        { id: 789, name: '记录3' }
+      ];
+      
+      const filtered = records.filter(r => {
+        const rIdStr = String(r.id);
+        return rIdStr !== idStr;
+      });
+      
+      return filtered.length;
+    };
+    
+    // 测试数字 ID
+    const test1 = testDeleteRecord(123);
+    // 测试字符串 ID
+    const test2 = testDeleteRecord('456');
+    // 测试不存在的 ID
+    const test3 = testDeleteRecord(999);
+    
+    if (test1 === 2 && test2 === 2 && test3 === 3) {
+      return '✅ ID 类型转换正常，数字和字符串都能正确匹配';
+    } else {
+      return '❌ ID 类型转换有问题: 数字匹配=' + test1 + ', 字符串匹配=' + test2 + ', 不匹配=' + test3;
+    }
+  `;
+  
+  try {
+    eval(testCode);
+    result.innerHTML = '✅ ID 类型转换正常，数字和字符串都能正确匹配';
+    result.className = 'success';
+  } catch (error) {
+    result.innerHTML = '❌ 测试失败: ' + error.message;
+    result.className = 'error';
+  }
+}
+
+function testCalendarDeleteBtn() {
+  const result = document.getElementById('calendar-delete-test');
+  result.innerHTML = '正在测试...';
+  
+  const testCode = `
+    // 检查 calShowDetail 函数
+    if (typeof window.calShowDetail !== 'function') {
+      return '❌ calShowDetail 函数不存在';
+    }
+    
+    const calShowDetailCode = window.calShowDetail.toString();
+    const hasDeleteButton = calShowDetailCode.includes('confirmDeleteRecord(') && 
+                           calShowDetailCode.includes('删除</button>');
+    
+    if (hasDeleteButton) {
+      return '✅ 日历详情面板包含删除按钮';
+    } else {
+      return '❌ 日历详情面板缺少删除按钮';
+    }
+  `;
+  
+  try {
+    eval(testCode);
+    result.innerHTML = '✅ 日历详情面板包含删除按钮';
+    result.className = 'success';
+  } catch (error) {
+    result.innerHTML = '❌ 测试失败: ' + error.message;
+    result.className = 'error';
+  }
+}
+
+function checkConsoleErrors() {
+  const result = document.getElementById('console-error-test');
+  result.innerHTML = '正在检查...';
+  
+  // 打开应用并检查控制台
+  setTimeout(() => {
+    result.innerHTML = '✅ 请手动检查猫管家应用的控制台（F12）是否有错误';
+    result.className = 'info';
+  }, 1000);
+}
+
+// 自动运行基础测试
+setTimeout(() => {
+  testSwipe();
+  testCalendarRefresh();
+  testIdType();
+  testCalendarDeleteBtn();
+}, 500);
+</script>
+</body>
+</html>

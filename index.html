@@ -907,6 +907,9 @@ function addRecord() {
   });
   
   renderDashboard();
+  renderHistory();
+  renderCalendar();
+  buildYearList();
 }
 
 // ====== History ======
@@ -985,13 +988,29 @@ function renderHistory() {
 // 滑动删除相关函数
 function initSwipeEvents() {
   const swipeContainers = document.querySelectorAll('.swipe-container');
-  swipeContainers.forEach(container => {
+  console.log('初始化滑动事件，找到容器数量:', swipeContainers.length);
+  
+  swipeContainers.forEach((container, index) => {
     const timelineItem = container.querySelector('.timeline-item');
     const deleteAction = container.querySelector('.delete-action');
+    const recordId = container.dataset.recordId;
+    
+    console.log(`处理容器 ${index + 1}, 记录ID: ${recordId}`);
+    
+    if (!timelineItem) {
+      console.log('警告: 未找到 timelineItem');
+      return;
+    }
+    if (!deleteAction) {
+      console.log('警告: 未找到 deleteAction');
+      return;
+    }
+    
     let startX = 0, currentX = 0, isDragging = false, isSwiped = false;
     
     // 触摸事件
     timelineItem.addEventListener('touchstart', function(e) {
+      console.log('touchstart 触发');
       startX = e.touches[0].clientX;
       isDragging = true;
       timelineItem.style.transition = 'none';
@@ -1014,26 +1033,31 @@ function initSwipeEvents() {
     }, { passive: true });
     
     timelineItem.addEventListener('touchend', function() {
+      console.log('touchend 触发, isDragging:', isDragging);
       if (!isDragging) return;
       isDragging = false;
       timelineItem.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
       
       const currentTranslate = parseInt(timelineItem.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+      console.log('当前滑动距离:', currentTranslate);
       if (currentTranslate > 40) {
         timelineItem.style.transform = 'translateX(-80px)';
         timelineItem.classList.add('swiped');
         isSwiped = true;
         deleteAction.classList.add('visible');
+        console.log('已滑动到删除位置');
       } else {
         timelineItem.style.transform = '';
         timelineItem.classList.remove('swiped');
         isSwiped = false;
         deleteAction.classList.remove('visible');
+        console.log('恢复原状');
       }
     }, { passive: true });
     
     // 鼠标事件
     timelineItem.addEventListener('mousedown', function(e) {
+      console.log('mousedown 触发');
       startX = e.clientX;
       isDragging = true;
       timelineItem.style.transition = 'none';
@@ -1056,21 +1080,25 @@ function initSwipeEvents() {
     });
     
     timelineItem.addEventListener('mouseup', function() {
+      console.log('mouseup 触发, isDragging:', isDragging);
       if (!isDragging) return;
       isDragging = false;
       timelineItem.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
       
       const currentTranslate = parseInt(timelineItem.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+      console.log('当前滑动距离:', currentTranslate);
       if (currentTranslate > 40) {
         timelineItem.style.transform = 'translateX(-80px)';
         timelineItem.classList.add('swiped');
         isSwiped = true;
         deleteAction.classList.add('visible');
+        console.log('已滑动到删除位置');
       } else {
         timelineItem.style.transform = '';
         timelineItem.classList.remove('swiped');
         isSwiped = false;
         deleteAction.classList.remove('visible');
+        console.log('恢复原状');
       }
     });
     
@@ -1094,6 +1122,13 @@ function initSwipeEvents() {
         e.stopPropagation();
       }
     });
+    
+    // 删除按钮点击事件
+    deleteAction.addEventListener('click', function(e) {
+      console.log('删除按钮点击, 记录ID:', recordId);
+      e.stopPropagation();
+      confirmDeleteRecord(recordId, this);
+    });
   });
 }
 
@@ -1106,9 +1141,13 @@ function confirmDeleteRecord(id, deleteBtn) {
     if (container) {
       const timelineItem = container.querySelector('.timeline-item');
       const deleteAction = container.querySelector('.delete-action');
-      timelineItem.style.transform = '';
-      timelineItem.classList.remove('swiped');
-      deleteAction.classList.remove('visible');
+      if (timelineItem) {
+        timelineItem.style.transform = '';
+        timelineItem.classList.remove('swiped');
+      }
+      if (deleteAction) {
+        deleteAction.classList.remove('visible');
+      }
     }
   }
 }
@@ -1118,10 +1157,15 @@ function deleteRecord(id) {
   console.log('Deleting record with id:', id);
   const db=getDB();
   console.log('Before delete - total records:', db.records.length);
+  
+  // 确保 ID 类型一致（字符串比较）
+  const idStr = String(id);
   db.records = db.records.filter(r=>{
-    console.log('Checking record', r.id, 'type:', typeof r.id, 'matches?', r.id !== id);
-    return r.id !== id;
+    const rIdStr = String(r.id);
+    console.log('Checking record', r.id, 'as string:', rIdStr, 'matches?', rIdStr !== idStr);
+    return rIdStr !== idStr;
   });
+  
   console.log('After delete - total records:', db.records.length);
   saveDB(db); 
   // 重新渲染所有页面
@@ -1260,7 +1304,7 @@ function calShowDetail(ds) {
   document.getElementById('cal-detail-list').innerHTML=records.map(r=>{
     let d='';
     if(r.type==='deworm')d=r.subtype;else if(r.type==='vaccine')d=r.vacType;else if(r.type==='checkup')d=r.item;else if(r.type==='bath')d='';
-    return '<div class="cal-detail-item"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0"></span><span class="timeline-cat">'+getCatName(r.cat_id)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26">'+tn[r.type]+'</span>'+d+' '+(r.note||'')+'</div>';
+    return '<div class="cal-detail-item" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0ece7;"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0;flex-shrink:0"></span><span class="timeline-cat" style="flex-shrink:0">'+getCatName(r.cat_id)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26;flex-shrink:0;font-size:11px;padding:2px 6px;border-radius:4px">'+tn[r.type]+'</span><span style="flex:1;font-size:12px;color:#8c7b6e">'+d+' '+(r.note||'')+'</span><button onclick="confirmDeleteRecord('+r.id+',this)" style="flex-shrink:0;padding:2px 8px;background:none;border:1px solid #e74c3c;color:#e74c3c;border-radius:4px;font-size:11px;cursor:pointer">删除</button></div>';
   }).join('');
 }
 function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}calSelected='';renderCalendar();}
