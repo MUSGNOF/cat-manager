@@ -447,7 +447,7 @@ body {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm-8 14v-1c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6v1"/></svg>
       <p>还没有猫咪，点击下方按钮添加</p>
     </div>
-    <button class="fab" onclick="showAddCatModal()" title="添加猫咪">+</button>
+    <button class="fab" id="fabAddCat" title="添加猫咪">+</button>
   </div>
 
   <!-- Calendar -->
@@ -1195,6 +1195,10 @@ async function init() {
 
   renderDashboard();
   renderSettings();
+
+  // Bind FAB buttons
+  const fabAddCat = document.getElementById('fabAddCat');
+  if (fabAddCat) fabAddCat.addEventListener('click', showAddCatModal);
 }
 
 init();
