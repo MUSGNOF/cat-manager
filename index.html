@@ -862,7 +862,7 @@ const EVENT_TYPES = {
 const THEME_COLORS = ['#f0854b', '#2196f3', '#4caf50', '#9c27b0', '#e91e63'];
 
 // ========== State ==========
-let supabase = null;
+let sb = null; // Supabase client instance (avoid conflict with global sb)
 let isOnline = false;
 let cats = [];
 let records = [];
@@ -877,7 +877,7 @@ let swipeState = { target: null, startX: 0, movedX: 0, swiping: false };
 // ========== Init Supabase ==========
 function initSupabase() {
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     setupRealtime();
     return true;
   } catch (e) {
@@ -887,15 +887,15 @@ function initSupabase() {
 }
 
 function setupRealtime() {
-  if (!supabase) return;
+  if (!sb) return;
   try {
-    supabase.channel('cats-changes')
+    sb.channel('cats-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cats' }, (payload) => {
         handleRealtimeCat(payload);
       })
       .subscribe();
 
-    supabase.channel('records-changes')
+    sb.channel('records-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'records' }, (payload) => {
         handleRealtimeRecord(payload);
       })
@@ -958,9 +958,9 @@ function loadLocalData() {
 }
 
 async function loadRemoteData() {
-  if (!supabase) return;
+  if (!sb) return;
   try {
-    const { data: remoteCats } = await supabase.from('cats').select('*');
+    const { data: remoteCats } = await sb.from('cats').select('*');
     if (remoteCats) {
       const localMap = new Map(cats.map(c => [c.id, c]));
       remoteCats.forEach(rc => localMap.set(rc.id, rc));
@@ -971,7 +971,7 @@ async function loadRemoteData() {
         if (!remoteCats.find(rc => rc.id === c.id)) await saveCatToRemote(c);
       }
     }
-    const { data: remoteRecs } = await supabase.from('records').select('*');
+    const { data: remoteRecs } = await sb.from('records').select('*');
     if (remoteRecs) {
       const localMap = new Map(records.map(r => [r.id, r]));
       remoteRecs.forEach(rr => localMap.set(rr.id, rr));
@@ -985,33 +985,33 @@ async function loadRemoteData() {
 }
 
 async function saveCatToRemote(cat) {
-  if (!supabase) return false;
+  if (!sb) return false;
   try {
-    const { error } = await supabase.from('cats').upsert(cat);
+    const { error } = await sb.from('cats').upsert(cat);
     return !error;
   } catch (e) { return false; }
 }
 
 async function deleteCatFromRemote(id) {
-  if (!supabase) return false;
+  if (!sb) return false;
   try {
-    const { error } = await supabase.from('cats').delete().eq('id', id);
+    const { error } = await sb.from('cats').delete().eq('id', id);
     return !error;
   } catch (e) { return false; }
 }
 
 async function saveRecordToRemote(record) {
-  if (!supabase) return false;
+  if (!sb) return false;
   try {
-    const { error } = await supabase.from('records').upsert(record);
+    const { error } = await sb.from('records').upsert(record);
     return !error;
   } catch (e) { return false; }
 }
 
 async function deleteRecordFromRemote(id) {
-  if (!supabase) return false;
+  if (!sb) return false;
   try {
-    const { error } = await supabase.from('records').delete().eq('id', id);
+    const { error } = await sb.from('records').delete().eq('id', id);
     return !error;
   } catch (e) { return false; }
 }
@@ -1071,9 +1071,9 @@ async function deleteRecord(id) {
 async function deleteRecords(ids) {
   records = records.filter(r => !ids.has(r.id));
   saveLocalRecords();
-  if (supabase) {
+  if (sb) {
     for (const id of ids) {
-      await supabase.from('records').delete().eq('id', id);
+      await sb.from('records').delete().eq('id', id);
     }
   }
   selectedRecordIds.clear();
