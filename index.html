@@ -1,1207 +1,1946 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>猫咪管理系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>猫咪管家 v1.0</title>
 <style>
+/* ========== CSS Variables ========== */
 :root {
   --primary: #f0854b;
-  --primary-light: #fdf0e8;
-  --bg: #f5f5f5;
-  --card: #ffffff;
-  --text: #1a1a1a;
-  --text-secondary: #999;
-  --border: #eee;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --radius: 14px;
-  --tab-height: 64px;
+  --primary-rgb: 240, 133, 75;
+  --bg: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-input: #f5f3ef;
+  --text: #3d3226;
+  --text-secondary: #8c8072;
+  --text-muted: #b8a898;
+  --border: #e8e0d5;
+  --shadow: 0 2px 12px rgba(60,40,20,0.08);
+  --shadow-lg: 0 8px 32px rgba(60,40,20,0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --header-height: 52px;
-  --max-width: 600px;
-  --danger: #e74c3c;
-  --success: #27ae60;
-}
-.dark {
-  --bg: #1a1a2e;
-  --card: #252540;
-  --text: #e0e0e0;
-  --text-secondary: #888;
-  --border: #333;
-  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --tab-height: 60px;
+  --success: #4caf50;
+  --error: #e53935;
+  --info: #2196f3;
+  --event-deworm: #4caf50;
+  --event-vaccine: #2196f3;
+  --event-bath: #00bcd4;
+  --event-checkup: #ff9800;
+  --event-nail_trim: #9c27b0;
+  --event-litter_box: #795548;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+[data-theme="dark"] {
+  --bg: #1a1816;
+  --bg-card: #262320;
+  --bg-input: #2e2a25;
+  --text: #e8e0d5;
+  --text-secondary: #a89880;
+  --text-muted: #6e6050;
+  --border: #3a3228;
+  --shadow: 0 2px 12px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+/* ========== Reset ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-tap-highlight-color: transparent; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
   background: var(--bg);
   color: var(--text);
+  line-height: 1.5;
   min-height: 100vh;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
+  transition: background var(--transition), color var(--transition);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+
+/* ========== App Shell ========== */
 .app {
-  max-width: var(--max-width);
+  max-width: 600px;
   margin: 0 auto;
   min-height: 100vh;
-  padding-bottom: calc(var(--tab-height) + 20px);
   position: relative;
+  padding-bottom: var(--tab-height);
 }
+
 .header {
   position: sticky;
   top: 0;
   z-index: 100;
   background: var(--bg);
-  padding: 12px 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  height: var(--header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--header-height);
-  backdrop-filter: blur(10px);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition), border var(--transition);
 }
-.header h1 { font-size: 22px; font-weight: 700; }
-.page { display: none; padding: 0 16px; }
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title .ears {
+  font-size: 1rem;
+  letter-spacing: -2px;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9e9e9e;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+.sync-dot.online { background: #4caf50; }
+.sync-dot.offline { background: #f44336; }
+
+/* ========== Pages ========== */
+.page {
+  display: none;
+  padding: 16px 20px;
+  animation: fadeIn 0.25s ease;
+}
 .page.active { display: block; }
 
-/* TabBar */
-.tabbar {
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== Tab Bar ========== */
+.tab-bar {
   position: fixed;
-  bottom: 0; left: 50%;
+  bottom: 0;
+  left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: var(--max-width);
+  max-width: 600px;
   height: var(--tab-height);
-  background: var(--card);
+  background: var(--bg-card);
   border-top: 1px solid var(--border);
   display: flex;
-  z-index: 200;
-  box-shadow: 0 -1px 6px rgba(0,0,0,0.05);
+  align-items: center;
+  justify-content: space-around;
+  z-index: 100;
+  transition: background var(--transition), border var(--transition);
+  box-shadow: 0 -1px 8px rgba(0,0,0,0.04);
 }
-.tabbar .tab {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  color: var(--text-secondary);
-  font-size:11px;
-  gap:4px;
-  cursor:pointer;
-  transition: color 0.2s;
-}
-.tabbar .tab.active { color: var(--primary); }
-.tabbar .tab svg { width:22px; height:22px; }
 
-/* Cards */
-.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 6px 16px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  transition: color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.tab-btn .tab-icon { font-size: 1.4rem; line-height: 1; }
+.tab-btn.active { color: var(--primary); }
+
+/* ========== Dashboard ========== */
+.cats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
 .cat-card {
-  background: var(--card);
+  background: var(--bg-card);
   border-radius: var(--radius);
   padding: 16px;
+  text-align: center;
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
   position: relative;
   overflow: hidden;
 }
-.cat-card:active { transform: scale(0.97); }
-.cat-card .avatar {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  background: var(--primary-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-.cat-card .name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-.cat-card .info { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
-.cat-card .gender-badge {
-  position: absolute;
-  top: 12px; right: 12px;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-.gender-male { background: #e3f2fd; color: #1976d2; }
-.gender-female { background: #fce4ec; color: #c62828; }
 
-/* Buttons */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 10px 20px; border-radius: 25px;
-  border: none; cursor: pointer; font-size: 14px; font-weight: 600;
-  transition: all 0.2s;
+.cat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.cat-card:active { transform: scale(0.97); }
+
+.cat-card .cat-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 10px;
+  display: block;
+  border: 3px solid var(--primary);
+  background: var(--bg-input);
+  transition: border-color var(--transition);
 }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:active { opacity: 0.8; }
-.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
-.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 15px; }
-.btn-danger { background: var(--danger); color: #fff; }
+
+.cat-card .cat-avatar.anime-filtered { border-color: #f8bbd0; }
+
+.cat-card .cat-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.cat-card .cat-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.cat-card .cat-ear {
+  position: absolute;
+  top: -6px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 50% 50% 0 0;
+  transform: rotate(30deg);
+  opacity: 0.3;
+  transition: background var(--transition);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 12px; opacity: 0.6; }
+.empty-state .empty-text { font-size: 0.9rem; margin-bottom: 4px; }
+.empty-state .empty-hint { font-size: 0.78rem; }
 
 .fab {
   position: fixed;
-  bottom: calc(var(--tab-height) + 20px);
-  right: calc(50% - var(--max-width)/2 + 20px);
-  width: 52px; height: 52px;
+  bottom: calc(var(--tab-height) + 24px);
+  right: max(20px, calc((100vw - 600px) / 2 + 20px));
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--primary);
   color: #fff;
   border: none;
-  font-size: 26px;
+  font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(240,133,75,0.4);
-  z-index: 150;
+  box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.4);
+  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 .fab:active { transform: scale(0.9); }
-@media (max-width: 600px) {
-  .fab { right: 20px; }
-}
 
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 500;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  animation: fadeIn 0.2s;
-}
-.modal {
-  background: var(--card);
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-width: var(--max-width);
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 24px 20px 32px;
-  animation: slideUp 0.25s ease-out;
-}
-.modal h3 { font-size: 18px; margin-bottom: 16px; text-align: center; }
-@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
-@keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
-
-/* Form */
-.form-group { margin-bottom: 14px; }
-.form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
-.form-group input, .form-group select, .form-group textarea {
-  width: 100%; padding: 11px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 15px;
-  background: var(--bg);
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.2s;
-  font-family: inherit;
-}
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
-.form-group textarea { resize: vertical; min-height: 60px; }
-.form-actions { display: flex; gap: 10px; margin-top: 20px; }
-.form-actions .btn { flex: 1; }
-
-/* Chip */
-.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  padding: 7px 14px; border-radius: 18px;
-  font-size: 13px; cursor: pointer;
-  border: 1.5px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.chip.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
-.chip.multi { border-radius: 18px; }
-
-/* Calendar */
-.cal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 0 16px;
-}
-.cal-header .month-label { font-size: 20px; font-weight: 700; }
-.cal-header .nav-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: var(--card);
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--shadow);
-}
-.cal-header .today-btn { font-size: 13px; color: var(--primary); cursor: pointer; font-weight: 600; }
-.cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
-.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
-.cal-cell {
-  aspect-ratio: 1;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  border-radius: 12px;
-  cursor: pointer;
-  position: relative;
-  font-size: 15px;
-  font-weight: 500;
-  transition: background 0.15s;
-}
-.cal-cell:hover { background: var(--border); }
-.cal-cell.other-month { color: var(--text-secondary); opacity: 0.4; }
-.cal-cell.today { background: var(--primary); color: #fff; font-weight: 700; border-radius: 50%; aspect-ratio: auto; width: 38px; height: 38px; margin: auto; }
-.cal-cell .dots { display: flex; gap: 3px; margin-top: 3px; flex-wrap: wrap; justify-content: center; }
-.cal-cell .dot { width: 5px; height: 5px; border-radius: 50%; }
-
-/* Record list */
-.record-list { margin-top: 12px; }
-.record-item {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  box-shadow: var(--shadow);
+/* ========== Calendar ========== */
+.calendar-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
-.record-item .type-dot {
-  width: 10px; height: 10px;
+
+.calendar-month {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-icon:hover { background: var(--bg-input); }
+.btn-icon:active { transform: scale(0.92); }
+
+.btn-today {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  border: 1px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+.btn-today:hover { background: var(--primary); color: #fff; }
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.weekday-row .weekend { color: #e57373; }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  position: relative;
+  transition: background var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  min-height: 44px;
+}
+
+.day-cell:hover { background: var(--bg-input); }
+.day-cell.other-month { color: var(--text-muted); opacity: 0.4; }
+.day-cell.today { background: rgba(var(--primary-rgb), 0.12); font-weight: 700; }
+.day-cell.selected { background: var(--primary); color: #fff; font-weight: 700; }
+.day-cell.selected.today { background: var(--primary); color: #fff; }
+
+.day-cell .event-dots {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+.day-cell .event-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.record-item .content { flex:1; min-width:0; }
-.record-item .content .top { display:flex; align-items:center; gap:8px; margin-bottom:3px; }
-.record-item .content .cat-name { font-weight:600; font-size:14px; }
-.record-item .content .type-tag { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--primary-light); color:var(--primary); }
-.record-item .content .note { font-size:12px; color:var(--text-secondary); }
-.record-item .content .date-info { font-size:11px; color:var(--text-secondary); margin-top:2px; }
-.record-item .delete-zone {
-  position: absolute; right: 0; top: 0; bottom: 0;
-  width: 70px;
-  background: var(--danger);
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 600;
-  border-radius: 0 12px 12px 0;
-  transform: translateX(100%);
-  transition: transform 0.2s;
-}
-.record-item.swiped { transform: translateX(-70px); }
-.record-item.swiped .delete-zone { transform: translateX(0); }
 
-/* Search */
-.search-box {
-  display: flex; align-items: center;
-  background: var(--card);
-  border-radius: 25px;
-  padding: 8px 16px;
-  margin-bottom: 12px;
-  gap: 8px;
-  box-shadow: var(--shadow);
+.calendar-relative {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
-.search-box input {
-  flex:1; border:none; outline:none;
-  background: transparent;
-  font-size: 14px;
+
+/* ========== Record Modal ========== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-sheet {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 10px 20px 30px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600; }
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border var(--transition), background var(--transition);
+  font-family: inherit;
+}
+.form-input:focus { border-color: var(--primary); }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-input);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all var(--transition);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   color: var(--text);
 }
-.search-box svg { width:18px; height:18px; color:var(--text-secondary); flex-shrink:0; }
+.chip:hover { border-color: var(--primary); }
+.chip.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-/* Settings */
-.setting-section { margin-bottom: 24px; }
-.setting-section h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; }
-.color-options { display: flex; gap: 10px; }
-.color-dot {
-  width: 36px; height: 36px;
+.chip.color-deworm { --chip-color: var(--event-deworm); }
+.chip.color-vaccine { --chip-color: var(--event-vaccine); }
+.chip.color-bath { --chip-color: var(--event-bath); }
+.chip.color-checkup { --chip-color: var(--event-checkup); }
+.chip.color-nail_trim { --chip-color: var(--event-nail_trim); }
+.chip.color-litter_box { --chip-color: var(--event-litter_box); }
+
+.chip.color-deworm.selected { background: var(--event-deworm); border-color: var(--event-deworm); }
+.chip.color-vaccine.selected { background: var(--event-vaccine); border-color: var(--event-vaccine); }
+.chip.color-bath.selected { background: var(--event-bath); border-color: var(--event-bath); }
+.chip.color-checkup.selected { background: var(--event-checkup); border-color: var(--event-checkup); }
+.chip.color-nail_trim.selected { background: var(--event-nail_trim); border-color: var(--event-nail_trim); }
+.chip.color-litter_box.selected { background: var(--event-litter_box); border-color: var(--event-litter_box); }
+
+.btn {
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: var(--primary); color: #fff; width: 100%; }
+.btn-danger { background: var(--error); color: #fff; }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ========== History ========== */
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.batch-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+  transition: background var(--transition);
+}
+
+.batch-bar.visible { display: flex; }
+
+.batch-bar input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+.batch-bar .batch-count { color: var(--primary); font-weight: 700; }
+.batch-bar .btn { font-size: 0.8rem; padding: 7px 16px; }
+
+.record-list { display: flex; flex-direction: column; gap: 8px; }
+
+.record-item {
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow var(--transition), background var(--transition);
+  cursor: default;
+  user-select: none;
+}
+
+.record-item .record-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.25s ease;
+}
+
+.record-item.swiped .record-inner { transform: translateX(-80px); }
+
+.record-item .delete-zone {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 80px;
+  background: var(--error);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  opacity: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.record-item.swiped .delete-zone { opacity: 1; }
+
+.record-item .record-checkbox {
+  display: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.record-item.batch .record-checkbox { display: block; }
+.record-item.batch .record-inner { pointer-events: none; }
+
+.record-item .record-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 90px;
+}
+
+.record-item .record-cat {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 50px;
+}
+
+.record-item .record-type-tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tag-deworm { background: var(--event-deworm); }
+.tag-vaccine { background: var(--event-vaccine); }
+.tag-bath { background: var(--event-bath); }
+.tag-checkup { background: var(--event-checkup); }
+.tag-nail_trim { background: var(--event-nail_trim); }
+.tag-litter_box { background: var(--event-litter_box); }
+
+.record-item .record-note {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========== Settings ========== */
+.settings-section {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  transition: background var(--transition);
+}
+
+.settings-section h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.theme-dots {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.theme-dot {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   border: 3px solid transparent;
-  transition: all 0.2s;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
-.color-dot.active { border-color: var(--text); transform: scale(1.1); }
+.theme-dot:hover { transform: scale(1.12); }
+.theme-dot.active { border-color: var(--text); box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.2); }
+
 .toggle-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--card);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.toggle-row span { font-size: 15px; font-weight: 500; }
+
+.toggle-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .toggle {
-  width: 48px; height: 28px;
+  width: 50px;
+  height: 28px;
   border-radius: 14px;
-  background: #ddd;
-  position: relative;
+  background: var(--border);
   cursor: pointer;
-  transition: background 0.3s;
+  position: relative;
+  transition: background var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 .toggle.on { background: var(--primary); }
 .toggle::after {
   content: '';
   position: absolute;
-  width: 24px; height: 24px;
+  top: 3px; left: 3px;
+  width: 22px; height: 22px;
   border-radius: 50%;
   background: #fff;
-  top: 2px; left: 2px;
-  transition: transform 0.3s;
+  transition: transform var(--transition);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.toggle.on::after { transform: translateX(20px); }
+.toggle.on::after { transform: translateX(22px); }
 
-/* Toast */
+.stats-row {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-card {
+  flex: 1;
+  text-align: center;
+  padding: 14px 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.stat-card .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* ========== Toast ========== */
 .toast-container {
   position: fixed;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: 300;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  pointer-events: none;
+  width: 100%;
+  max-width: 400px;
+  padding: 0 20px;
 }
+
 .toast {
-  background: #333;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
   color: #fff;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  animation: toastIn 0.3s ease-out;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  text-align: center;
 }
-.toast.success { background: var(--success); }
-.toast.error { background: var(--danger); }
-@keyframes toastIn { from { opacity:0; transform:translateY(-10px) } to { opacity:1; transform:translateY(0) } }
+.toast.success { background: #43a047; }
+.toast.error { background: #e53935; }
+.toast.info { background: #1e88e5; }
 
-/* Empty */
-.empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
-.empty svg { width: 64px; height: 64px; margin-bottom: 12px; opacity: 0.5; }
-.empty p { font-size: 14px; }
-
-/* Loading */
-.loading { text-align:center; padding:40px; color:var(--text-secondary); }
-.spinner {
-  width: 32px; height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 12px;
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes spin { to { transform: rotate(360deg) } }
-
-/* Day records panel */
-.day-panel {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 16px;
-  margin-top: 12px;
-  box-shadow: var(--shadow);
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
 }
-.day-panel h4 { font-size: 15px; margin-bottom: 12px; }
 
-/* Filter bar */
-.filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-
-/* Sync indicator */
-.sync-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  display: inline-block;
-  margin-left: 6px;
-}
-.sync-dot.offline { background: #ccc; }
-
-/* Scrollbar */
+/* ========== Scrollbar ========== */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.dark .cal-cell.today { color: #fff; }
-.dark .chip.selected { background: var(--primary); color: #fff; }
+/* ========== Responsive ========== */
+@media (max-width: 600px) {
+  .cats-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .cat-card { padding: 12px; }
+  .cat-card .cat-avatar { width: 52px; height: 52px; }
+}
 </style>
 </head>
 <body>
 
-<div class="app" id="app">
+<div class="app">
   <!-- Header -->
-  <div class="header">
-    <h1 id="pageTitle">我的猫咪</h1>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="sync-dot" id="syncDot" title="同步状态"></span>
-      <span style="font-size:12px;color:var(--text-secondary)" id="syncLabel">在线</span>
-    </div>
-  </div>
+  <header class="header">
+    <span class="header-title"><span class="ears">🐱</span>猫咪管家</span>
+    <span class="sync-dot" id="syncDot" title="连接状态"></span>
+  </header>
 
-  <!-- Dashboard -->
+  <!-- Dashboard Page -->
   <div class="page active" id="page-dashboard">
-    <div class="cat-grid" id="catGrid"></div>
-    <div class="empty" id="emptyCats">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm-8 14v-1c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6v1"/></svg>
-      <p>还没有猫咪，点击下方按钮添加</p>
+    <div class="cats-grid" id="catsGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="empty-icon">🐾</div>
+      <div class="empty-text">还没有猫咪档案</div>
+      <div class="empty-hint">点击右下角 + 添加你的第一只猫咪</div>
     </div>
-    <button class="fab" id="fabAddCat" title="添加猫咪">+</button>
   </div>
 
-  <!-- Calendar -->
+  <!-- Calendar Page -->
   <div class="page" id="page-calendar">
-    <div class="cal-header">
-      <button class="nav-btn" onclick="calPrevMonth()">&lt;</button>
-      <span class="month-label" id="calMonthLabel"></span>
-      <button class="nav-btn" onclick="calNextMonth()">&gt;</button>
+    <div class="calendar-header">
+      <button class="btn-icon" id="calPrev">◀</button>
+      <span class="calendar-month" id="calMonth"></span>
+      <button class="btn-icon" id="calNext">▶</button>
+      <button class="btn-today" id="calToday">今天</button>
     </div>
-    <div style="text-align:center;margin-bottom:8px;">
-      <span class="today-btn" onclick="calGoToday()">今天</span>
+    <div class="weekday-row">
+      <span class="weekend">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="weekend">六</span>
     </div>
-    <div class="cal-weekdays">
-      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div id="calDayPanel"></div>
-    <div class="search-box" style="margin-top:12px">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="搜索记录..." id="calSearchInput" oninput="renderCalendar()">
-    </div>
-    <button class="fab" onclick="showAddRecordModal()">+</button>
+    <div class="calendar-grid" id="calGrid"></div>
+    <div class="calendar-relative" id="calRelative"></div>
   </div>
 
-  <!-- History -->
+  <!-- History Page -->
   <div class="page" id="page-history">
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="搜索记录..." id="histSearchInput" oninput="renderHistory()">
+    <div class="history-header">
+      <div class="chip-group" id="historyCatFilter"></div>
+      <button class="btn btn-ghost" id="batchToggle" style="padding:7px 14px;font-size:0.8rem;">选择</button>
     </div>
-    <div class="filter-bar" id="histFilters"></div>
-    <div class="record-list" id="histList"></div>
-    <div class="empty" id="emptyHist">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <p>暂无记录</p>
+    <div class="batch-bar" id="batchBar">
+      <input type="checkbox" id="batchSelectAll">
+      <span>全选 <span class="batch-count" id="batchCount">0</span>/<span id="batchTotal">0</span></span>
+      <button class="btn btn-danger" id="batchDelete" style="margin-left:auto">删除所选</button>
+    </div>
+    <div class="record-list" id="recordList"></div>
+    <div class="empty-state" id="historyEmpty" style="display:none">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">暂无记录</div>
     </div>
   </div>
 
-  <!-- Settings -->
+  <!-- Settings Page -->
   <div class="page" id="page-settings">
-    <div class="setting-section">
-      <h4>主题色</h4>
-      <div class="color-options" id="colorOptions">
-        <div class="color-dot active" style="background:#f0854b" data-color="#f0854b"></div>
-        <div class="color-dot" style="background:#4a90d9" data-color="#4a90d9"></div>
-        <div class="color-dot" style="background:#43a047" data-color="#43a047"></div>
-        <div class="color-dot" style="background:#8e44ad" data-color="#8e44ad"></div>
-        <div class="color-dot" style="background:#e91e63" data-color="#e91e63"></div>
+    <div class="settings-section">
+      <h3>主题色</h3>
+      <div class="theme-dots" id="themeDots">
+        <span class="theme-dot" data-theme="#f0854b" style="background:#f0854b" title="暖橙"></span>
+        <span class="theme-dot" data-theme="#2196f3" style="background:#2196f3" title="天空蓝"></span>
+        <span class="theme-dot" data-theme="#4caf50" style="background:#4caf50" title="森林绿"></span>
+        <span class="theme-dot" data-theme="#9c27b0" style="background:#9c27b0" title="梦幻紫"></span>
+        <span class="theme-dot" data-theme="#e91e63" style="background:#e91e63" title="樱花粉"></span>
       </div>
     </div>
-    <div class="setting-section">
+    <div class="settings-section">
       <div class="toggle-row">
-        <span>深色模式</span>
-        <div class="toggle" id="darkToggle" onclick="toggleDarkMode()"></div>
+        <span class="toggle-label">深色模式</span>
+        <div class="toggle" id="darkToggle"></div>
       </div>
     </div>
-    <div class="setting-section">
-      <div class="toggle-row">
-        <span>数据统计</span>
-        <span style="color:var(--text-secondary);font-size:13px;">
-          <span id="statCats">0</span> 只猫 · <span id="statRecords">0</span> 条记录
-        </span>
+    <div class="settings-section">
+      <h3>数据统计</h3>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="statCats">0</div><div class="stat-label">猫咪数量</div></div>
+        <div class="stat-card"><div class="stat-num" id="statRecords">0</div><div class="stat-label">记录总数</div></div>
       </div>
     </div>
   </div>
 
-  <!-- TabBar -->
-  <div class="tabbar">
-    <div class="tab active" data-page="dashboard" onclick="switchPage('dashboard')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>主页</span>
-    </div>
-    <div class="tab" data-page="calendar" onclick="switchPage('calendar')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>日历</span>
-    </div>
-    <div class="tab" data-page="history" onclick="switchPage('history')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span>历史</span>
-    </div>
-    <div class="tab" data-page="settings" onclick="switchPage('settings')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span>设置</span>
-    </div>
-  </div>
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-page="dashboard"><span class="tab-icon">🏠</span>主页</button>
+    <button class="tab-btn" data-page="calendar"><span class="tab-icon">📅</span>日历</button>
+    <button class="tab-btn" data-page="history"><span class="tab-icon">📋</span>历史</button>
+    <button class="tab-btn" data-page="settings"><span class="tab-icon">⚙️</span>设置</button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fabAdd">+</button>
 </div>
 
-<!-- Modals -->
-<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="closeModal(event)">
-  <div class="modal" id="modalContent" onclick="event.stopPropagation()"></div>
-</div>
-
-<!-- Toast -->
+<!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal Container -->
+<div id="modalContainer"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ==================== Supabase + State ====================
+// ========== Constants ==========
 const SUPABASE_URL = 'https://ctgauwdvffdhdkmtpnnr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Z2F1d2R2ZmZkaGRrbXRwbm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODQyMzMsImV4cCI6MjA5NjU2MDIzM30.A0PItTHvyzd2ZEdutWoS1gkekn-6BXuG0wPSjmAiEOg';
+const STORAGE_KEY_CATS = 'catmanager_cats';
+const STORAGE_KEY_RECORDS = 'catmanager_records';
+const STORAGE_KEY_THEME = 'catmanager_theme';
+const STORAGE_KEY_DARK = 'catmanager_dark';
 
+const EVENT_TYPES = {
+  deworm: { label: '驱虫', color: '#4caf50' },
+  vaccine: { label: '疫苗', color: '#2196f3' },
+  bath: { label: '洗澡', color: '#00bcd4' },
+  checkup: { label: '体检', color: '#ff9800' },
+  nail_trim: { label: '剪指甲', color: '#9c27b0' },
+  litter_box: { label: '猫砂盆', color: '#795548' }
+};
+
+const THEME_COLORS = ['#f0854b', '#2196f3', '#4caf50', '#9c27b0', '#e91e63'];
+
+// ========== State ==========
 let supabase = null;
-let onlineMode = false;
+let isOnline = false;
+let cats = [];
+let records = [];
+let currentPage = 'dashboard';
+let currentMonth = new Date();
+let selectedDay = null;
+let batchMode = false;
+let selectedRecordIds = new Set();
+let historyCatFilter = 'all';
+let swipeState = { target: null, startX: 0, movedX: 0, swiping: false };
 
-try {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  onlineMode = true;
-} catch(e) {
-  console.warn('Supabase init failed, using localStorage fallback');
-}
-
-const RECORD_TYPES = {
-  deworm:    { label:'驱虫',     color:'#4caf50' },
-  vaccine:   { label:'疫苗',     color:'#2196f3' },
-  bath:      { label:'洗澡',     color:'#00bcd4' },
-  checkup:   { label:'体检',     color:'#ff9800' },
-  nail_trim: { label:'剪指甲',   color:'#9c27b0' },
-  litter_box:{ label:'猫砂盆',   color:'#795548' }
-};
-
-let state = {
-  cats: [],
-  records: [],
-  calYear: new Date().getFullYear(),
-  calMonth: new Date().getMonth() + 1,
-  calSelectedDate: null,
-  theme: '#f0854b',
-  darkMode: false,
-  activePage: 'dashboard'
-};
-
-// ==================== Storage ====================
-function saveLocal() {
-  localStorage.setItem('catmanager_cats', JSON.stringify(state.cats));
-  localStorage.setItem('catmanager_records', JSON.stringify(state.records));
-  localStorage.setItem('catmanager_theme', state.theme);
-  localStorage.setItem('catmanager_dark', state.darkMode ? '1' : '0');
-}
-function loadLocal() {
+// ========== Init Supabase ==========
+function initSupabase() {
   try {
-    state.cats = JSON.parse(localStorage.getItem('catmanager_cats') || '[]');
-    state.records = JSON.parse(localStorage.getItem('catmanager_records') || '[]');
-    state.theme = localStorage.getItem('catmanager_theme') || '#f0854b';
-    state.darkMode = localStorage.getItem('catmanager_dark') === '1';
-  } catch(e) {}
-}
-
-// ==================== Supabase Ops ====================
-async function syncFromSupabase() {
-  if (!onlineMode || !supabase) return;
-  try {
-    const [catsRes, recsRes] = await Promise.all([
-      supabase.from('cats').select('*'),
-      supabase.from('records').select('*')
-    ]);
-    if (catsRes.data) {
-      state.cats = catsRes.data.map(c => ({
-        id: c.id, name: c.name, breed: c.breed || '', color: c.color || '',
-        gender: c.gender || '公', birth: c.birth || '', weight: c.weight || ''
-      }));
-    }
-    if (recsRes.data) {
-      state.records = recsRes.data.map(r => ({
-        id: String(r.id), cat_id: r.cat_id, type: r.type,
-        date: r.date, note: r.note || ''
-      }));
-    }
-    saveLocal();
-    updateSyncStatus(true);
-  } catch(e) {
-    console.warn('Supabase sync failed, using local data');
-    updateSyncStatus(false);
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    setupRealtime();
+    return true;
+  } catch (e) {
+    console.warn('Supabase init failed:', e);
+    return false;
   }
 }
 
-async function supabaseUpsertCat(cat) {
-  if (!onlineMode || !supabase) return;
-  try {
-    await supabase.from('cats').upsert({
-      id: cat.id, name: cat.name, breed: cat.breed || '',
-      color: cat.color || '', gender: cat.gender || '公',
-      birth: cat.birth || null, weight: cat.weight || ''
-    });
-    updateSyncStatus(true);
-  } catch(e) { updateSyncStatus(false); }
-}
-
-async function supabaseDeleteCat(id) {
-  if (!onlineMode || !supabase) return;
-  try {
-    await supabase.from('cats').delete().eq('id', id);
-    await supabase.from('records').delete().eq('cat_id', id);
-    updateSyncStatus(true);
-  } catch(e) { updateSyncStatus(false); }
-}
-
-async function supabaseInsertRecord(rec) {
-  if (!onlineMode || !supabase) return;
-  try {
-    const payload = { id: rec.id, cat_id: rec.cat_id, type: rec.type, date: rec.date, note: rec.note || '' };
-    await supabase.from('records').upsert(payload);
-    updateSyncStatus(true);
-  } catch(e) { updateSyncStatus(false); }
-}
-
-async function supabaseDeleteRecord(id) {
-  if (!onlineMode || !supabase) return;
-  try {
-    await supabase.from('records').delete().eq('id', id);
-    updateSyncStatus(true);
-  } catch(e) { updateSyncStatus(false); }
-}
-
-function updateSyncStatus(ok) {
-  const dot = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
-  if (ok) { dot.className = 'sync-dot'; label.textContent = '在线'; }
-  else { dot.className = 'sync-dot offline'; label.textContent = '离线'; }
-}
-
-// ==================== Realtime ====================
 function setupRealtime() {
-  if (!onlineMode || !supabase) return;
+  if (!supabase) return;
+  try {
+    supabase.channel('cats-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cats' }, (payload) => {
+        handleRealtimeCat(payload);
+      })
+      .subscribe();
 
-  supabase.channel('cats-changes')
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'cats' },
-      async () => { await syncFromSupabase(); refreshAll(); }
-    ).subscribe();
-
-  supabase.channel('records-changes')
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'records' },
-      async () => { await syncFromSupabase(); refreshAll(); }
-    ).subscribe();
+    supabase.channel('records-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'records' }, (payload) => {
+        handleRealtimeRecord(payload);
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Realtime setup failed:', e);
+  }
 }
 
-// ==================== Helpers ====================
-function genId() { return 'cat_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
-function recId() { return String(Date.now()); }
+function handleRealtimeCat(payload) {
+  const { eventType, new: newRow, old: oldRow } = payload;
+  if (eventType === 'INSERT') {
+    if (!cats.find(c => c.id === newRow.id)) {
+      cats.push(newRow);
+    }
+  } else if (eventType === 'UPDATE') {
+    const idx = cats.findIndex(c => c.id === newRow.id);
+    if (idx >= 0) cats[idx] = newRow;
+  } else if (eventType === 'DELETE') {
+    cats = cats.filter(c => c.id !== oldRow.id);
+  }
+  saveLocalCats();
+  refreshAllViews();
+}
 
-function getAge(birth) {
-  if (!birth) return '未知';
-  const b = new Date(birth);
+function handleRealtimeRecord(payload) {
+  const { eventType, new: newRow, old: oldRow } = payload;
+  if (eventType === 'INSERT') {
+    if (!records.find(r => r.id === newRow.id)) {
+      records.push(newRow);
+    }
+  } else if (eventType === 'UPDATE') {
+    const idx = records.findIndex(r => r.id === newRow.id);
+    if (idx >= 0) records[idx] = newRow;
+  } else if (eventType === 'DELETE') {
+    records = records.filter(r => r.id !== oldRow.id);
+  }
+  saveLocalRecords();
+  refreshCalendarAndHistory();
+}
+
+// ========== Data Operations ==========
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function saveLocalCats() { localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(cats)); }
+function saveLocalRecords() { localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records)); }
+
+function loadLocalData() {
+  try {
+    const c = localStorage.getItem(STORAGE_KEY_CATS);
+    if (c) cats = JSON.parse(c);
+    const r = localStorage.getItem(STORAGE_KEY_RECORDS);
+    if (r) records = JSON.parse(r);
+  } catch (e) { console.warn('localStorage load failed'); }
+}
+
+async function loadRemoteData() {
+  if (!supabase) return;
+  try {
+    const { data: remoteCats } = await supabase.from('cats').select('*');
+    if (remoteCats) {
+      const localMap = new Map(cats.map(c => [c.id, c]));
+      remoteCats.forEach(rc => localMap.set(rc.id, rc));
+      cats = [...localMap.values()];
+      saveLocalCats();
+      // Push local-only cats to remote
+      for (const c of cats) {
+        if (!remoteCats.find(rc => rc.id === c.id)) await saveCatToRemote(c);
+      }
+    }
+    const { data: remoteRecs } = await supabase.from('records').select('*');
+    if (remoteRecs) {
+      const localMap = new Map(records.map(r => [r.id, r]));
+      remoteRecs.forEach(rr => localMap.set(rr.id, rr));
+      records = [...localMap.values()];
+      saveLocalRecords();
+      for (const r of records) {
+        if (!remoteRecs.find(rr => rr.id === r.id)) await saveRecordToRemote(r);
+      }
+    }
+  } catch (e) { console.warn('Remote load failed:', e); }
+}
+
+async function saveCatToRemote(cat) {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('cats').upsert(cat);
+    return !error;
+  } catch (e) { return false; }
+}
+
+async function deleteCatFromRemote(id) {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('cats').delete().eq('id', id);
+    return !error;
+  } catch (e) { return false; }
+}
+
+async function saveRecordToRemote(record) {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('records').upsert(record);
+    return !error;
+  } catch (e) { return false; }
+}
+
+async function deleteRecordFromRemote(id) {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('records').delete().eq('id', id);
+    return !error;
+  } catch (e) { return false; }
+}
+
+// ========== Cat CRUD ==========
+function findCatById(id) { return cats.find(c => c.id === id); }
+
+async function addCat(data) {
+  const cat = { id: uuid(), ...data, photo: data.photo || '' };
+  cats.push(cat);
+  saveLocalCats();
+  await saveCatToRemote(cat);
+  refreshAllViews();
+  showToast('猫咪已添加', 'success');
+}
+
+async function updateCat(id, data) {
+  const idx = cats.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  cats[idx] = { ...cats[idx], ...data };
+  saveLocalCats();
+  await saveCatToRemote(cats[idx]);
+  refreshAllViews();
+  showToast('猫咪信息已更新', 'success');
+}
+
+async function deleteCat(id) {
+  const cat = findCatById(id);
+  if (!cat) return;
+  cats = cats.filter(c => c.id !== id);
+  records = records.filter(r => r.cat_id !== id);
+  saveLocalCats();
+  saveLocalRecords();
+  await deleteCatFromRemote(id);
+  refreshAllViews();
+  showToast('猫咪已删除', 'info');
+}
+
+// ========== Record CRUD ==========
+async function addRecord(data) {
+  const record = { id: uuid(), ...data, note: data.note || '' };
+  records.push(record);
+  saveLocalRecords();
+  await saveRecordToRemote(record);
+  refreshCalendarAndHistory();
+  showToast('记录已添加', 'success');
+}
+
+async function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  saveLocalRecords();
+  await deleteRecordFromRemote(id);
+  refreshCalendarAndHistory();
+  showToast('记录已删除', 'info');
+}
+
+async function deleteRecords(ids) {
+  records = records.filter(r => !ids.has(r.id));
+  saveLocalRecords();
+  if (supabase) {
+    for (const id of ids) {
+      await supabase.from('records').delete().eq('id', id);
+    }
+  }
+  selectedRecordIds.clear();
+  refreshCalendarAndHistory();
+  showToast(`已删除 ${ids.size} 条记录`, 'info');
+}
+
+// ========== UI Refresh ==========
+function refreshAllViews() {
+  renderDashboard();
+  renderCalendar();
+  renderHistory();
+  renderSettings();
+}
+
+function refreshCalendarAndHistory() {
+  renderCalendar();
+  renderHistory();
+  renderSettings();
+}
+
+// ========== Dashboard Rendering ==========
+function renderDashboard() {
+  const grid = document.getElementById('catsGrid');
+  const empty = document.getElementById('emptyState');
+
+  if (cats.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.innerHTML = cats.map(cat => {
+    const age = cat.birth ? calcAge(cat.birth) : '未知';
+    const avatarSrc = cat.photo || '';
+    const filteredClass = cat.photo && cat.photo.startsWith('data:') ? ' anime-filtered' : '';
+    return `
+      <div class="cat-card" data-cat-id="${cat.id}">
+        <div class="cat-ear"></div>
+        <img class="cat-avatar${filteredClass}" src="${avatarSrc || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect fill="%23e8e0d5" width="64" height="64" rx="32"/><text x="32" y="40" text-anchor="middle" font-size="28">🐱</text></svg>')}" alt="${cat.name}" loading="lazy">
+        <div class="cat-name">${escapeHtml(cat.name)}</div>
+        <div class="cat-info">${escapeHtml(cat.breed || '未知品种')} · ${escapeHtml(cat.color || '未知')}</div>
+        <div class="cat-info">${age} · ${cat.weight ? cat.weight + 'kg' : '未知体重'}</div>
+      </div>`;
+  }).join('');
+}
+
+function calcAge(birthStr) {
+  if (!birthStr) return '未知';
+  const birth = new Date(birthStr);
   const now = new Date();
-  let years = now.getFullYear() - b.getFullYear();
-  let months = now.getMonth() - b.getMonth();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
   if (months < 0) { years--; months += 12; }
-  if (years > 0) return years + '岁' + (months > 0 ? months + '个月' : '');
-  return months + '个月';
+  if (years > 0) return `${years}岁${months}个月`;
+  if (months > 0) return `${months}个月`;
+  const days = Math.floor((now - birth) / 86400000);
+  return `${Math.max(0, days)}天`;
 }
 
-function relativeDays(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
-  const diff = Math.round((d - now) / 86400000);
-  if (diff === 0) return '今天';
-  if (diff === -1) return '昨天';
-  if (diff === 1) return '明天';
-  if (diff < 0) return Math.abs(diff) + '天前';
-  return diff + '天后';
-}
-
-function formatDate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return y + '-' + m + '-' + day;
-}
-
-// ==================== Toast ====================
-function toast(msg, type) {
-  const container = document.getElementById('toastContainer');
-  const el = document.createElement('div');
-  el.className = 'toast' + (type ? ' ' + type : '');
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => { el.remove(); }, 2500);
-}
-
-// ==================== Modal ====================
-function showModal(html) {
-  document.getElementById('modalContent').innerHTML = html;
-  document.getElementById('modalOverlay').style.display = 'flex';
-}
-function closeModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('modalOverlay').style.display = 'none';
-}
-function hideModal() {
-  document.getElementById('modalOverlay').style.display = 'none';
-}
-
-// ==================== Cat CRUD ====================
-function showAddCatModal() {
-  showModal(`
-    <h3>添加猫咪</h3>
-    <div class="form-group"><label>名字 *</label><input id="catName" placeholder="给猫咪起个名字"></div>
-    <div class="form-group"><label>品种</label><input id="catBreed" placeholder="如：英短、布偶"></div>
-    <div class="form-group"><label>毛色</label><input id="catColor" placeholder="如：橘白、纯黑"></div>
-    <div class="form-group"><label>性别</label><select id="catGender"><option value="公">公</option><option value="母">母</option></select></div>
-    <div class="form-group"><label>出生日期</label><input type="date" id="catBirth"></div>
-    <div class="form-group"><label>体重 (kg)</label><input type="number" id="catWeight" step="0.1" placeholder="如：4.5"></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="hideModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveCat()">保存</button>
-    </div>
-  `);
-}
-
-function showEditCatModal(cat) {
-  showModal(`
-    <h3>编辑猫咪</h3>
-    <div class="form-group"><label>名字 *</label><input id="catName" value="${escapeHtml(cat.name)}"></div>
-    <div class="form-group"><label>品种</label><input id="catBreed" value="${escapeHtml(cat.breed||'')}"></div>
-    <div class="form-group"><label>毛色</label><input id="catColor" value="${escapeHtml(cat.color||'')}"></div>
-    <div class="form-group"><label>性别</label><select id="catGender">${(cat.gender==='母'?'<option>公</option><option selected>母</option>':'<option selected>公</option><option>母</option>')}</select></div>
-    <div class="form-group"><label>出生日期</label><input type="date" id="catBirth" value="${cat.birth||''}"></div>
-    <div class="form-group"><label>体重 (kg)</label><input type="number" id="catWeight" step="0.1" value="${cat.weight||''}"></div>
-    <div class="form-actions">
-      <button class="btn btn-danger" onclick="deleteCat('${cat.id}')">删除</button>
-      <button class="btn btn-outline" onclick="hideModal()">取消</button>
-      <button class="btn btn-primary" onclick="updateCat('${cat.id}')">保存</button>
-    </div>
-  `);
-}
-
-function saveCat() {
-  const name = document.getElementById('catName').value.trim();
-  if (!name) { toast('请输入猫咪名字', 'error'); return; }
-  const cat = {
-    id: genId(),
-    name,
-    breed: document.getElementById('catBreed').value.trim(),
-    color: document.getElementById('catColor').value.trim(),
-    gender: document.getElementById('catGender').value,
-    birth: document.getElementById('catBirth').value,
-    weight: document.getElementById('catWeight').value
-  };
-  state.cats.push(cat);
-  saveLocal();
-  supabaseUpsertCat(cat);
-  hideModal();
-  refreshAll();
-  toast('添加成功', 'success');
-}
-
-function updateCat(id) {
-  const name = document.getElementById('catName').value.trim();
-  if (!name) { toast('请输入猫咪名字', 'error'); return; }
-  const idx = state.cats.findIndex(c => c.id === id);
-  if (idx === -1) return;
-  state.cats[idx] = {
-    ...state.cats[idx],
-    name,
-    breed: document.getElementById('catBreed').value.trim(),
-    color: document.getElementById('catColor').value.trim(),
-    gender: document.getElementById('catGender').value,
-    birth: document.getElementById('catBirth').value,
-    weight: document.getElementById('catWeight').value
-  };
-  saveLocal();
-  supabaseUpsertCat(state.cats[idx]);
-  hideModal();
-  refreshAll();
-  toast('更新成功', 'success');
-}
-
-function deleteCat(id) {
-  if (!confirm('确定删除这只猫咪吗？相关记录也会删除。')) return;
-  state.cats = state.cats.filter(c => c.id !== id);
-  state.records = state.records.filter(r => r.cat_id !== id);
-  saveLocal();
-  supabaseDeleteCat(id);
-  hideModal();
-  refreshAll();
-  toast('已删除', 'success');
-}
-
-// ==================== Record CRUD ====================
-function showAddRecordModal(presetDate) {
-  const catsHTML = state.cats.map(c =>
-    `<span class="chip multi" data-cat="${c.id}" onclick="this.classList.toggle('selected')">${escapeHtml(c.name)}</span>`
-  ).join('');
-  const typesHTML = Object.entries(RECORD_TYPES).map(([k,v]) =>
-    `<span class="chip" data-type="${k}" onclick="selectRecordType(this)">${v.label}</span>`
-  ).join('');
-  const defDate = presetDate || formatDate(new Date());
-  showModal(`
-    <h3>添加记录</h3>
-    <div class="form-group"><label>选择猫咪（可多选）</label><div class="chip-group" id="catChips">${catsHTML}</div></div>
-    <div class="form-group"><label>记录类型</label><div class="chip-group" id="typeChips">${typesHTML}</div></div>
-    <div class="form-group"><label>日期</label><input type="date" id="recDate" value="${defDate}"></div>
-    <div class="form-group"><label>备注</label><textarea id="recNote" placeholder="可选备注..."></textarea></div>
-    <div class="form-actions">
-      <button class="btn btn-outline" onclick="hideModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
-    </div>
-  `);
-}
-
-let selectedRecordType = null;
-function selectRecordType(el) {
-  document.querySelectorAll('#typeChips .chip').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedRecordType = el.dataset.type;
-}
-
-function saveRecord() {
-  const catChips = document.querySelectorAll('#catChips .chip.selected');
-  const catIds = Array.from(catChips).map(c => c.dataset.cat);
-  if (catIds.length === 0) { toast('请选择猫咪', 'error'); return; }
-  if (!selectedRecordType) { toast('请选择记录类型', 'error'); return; }
-  const date = document.getElementById('recDate').value;
-  const note = document.getElementById('recNote').value.trim();
-
-  catIds.forEach(cid => {
-    const rec = {
-      id: recId(),
-      cat_id: cid,
-      type: selectedRecordType,
-      date,
-      note
-    };
-    state.records.push(rec);
-    supabaseInsertRecord(rec);
-  });
-  saveLocal();
-  hideModal();
-  refreshAll();
-  toast('已添加 ' + catIds.length + ' 条记录', 'success');
-}
-
-function deleteRecord(id) {
-  state.records = state.records.filter(r => r.id !== id);
-  saveLocal();
-  supabaseDeleteRecord(id);
-  refreshAll();
-  toast('已删除', 'success');
-}
-
-// ==================== Calendar ====================
-function calPrevMonth() {
-  if (state.calMonth === 1) { state.calYear--; state.calMonth = 12; }
-  else state.calMonth--;
-  state.calSelectedDate = null;
-  renderCalendar();
-}
-function calNextMonth() {
-  if (state.calMonth === 12) { state.calYear++; state.calMonth = 1; }
-  else state.calMonth++;
-  state.calSelectedDate = null;
-  renderCalendar();
-}
-function calGoToday() {
-  const now = new Date();
-  state.calYear = now.getFullYear();
-  state.calMonth = now.getMonth() + 1;
-  state.calSelectedDate = null;
-  renderCalendar();
-}
-
-function getRecordsForDate(dateStr) {
-  const search = (document.getElementById('calSearchInput')?.value || '').trim().toLowerCase();
-  return state.records.filter(r => {
-    if (r.date !== dateStr) return false;
-    if (!search) return true;
-    const cat = state.cats.find(c => c.id === r.cat_id);
-    const typeLabel = RECORD_TYPES[r.type]?.label || r.type;
-    return (cat?.name || '').toLowerCase().includes(search) ||
-           typeLabel.toLowerCase().includes(search) ||
-           (r.note || '').toLowerCase().includes(search);
-  });
-}
-
+// ========== Calendar Rendering ==========
 function renderCalendar() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  document.getElementById('calMonth').textContent = `${year}年${month + 1}月`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const todayStr = formatDateStr(today);
+
+  // Build event map
+  const eventMap = {};
+  records.forEach(r => {
+    if (!eventMap[r.date]) eventMap[r.date] = new Set();
+    eventMap[r.date].add(r.type);
+  });
+
   const grid = document.getElementById('calGrid');
-  const label = document.getElementById('calMonthLabel');
-  const panel = document.getElementById('calDayPanel');
-  label.textContent = state.calYear + '年 ' + state.calMonth + '月';
-
-  const firstDay = new Date(state.calYear, state.calMonth - 1, 1).getDay();
-  const daysInMonth = new Date(state.calYear, state.calMonth, 0).getDate();
-  const prevDays = new Date(state.calYear, state.calMonth - 1, 0).getDate();
-  const today = formatDate(new Date());
-
   let html = '';
+
   // Previous month fill
+  const prevDays = new Date(year, month, 0).getDate();
   for (let i = firstDay - 1; i >= 0; i--) {
     const d = prevDays - i;
-    const ds = formatDate(new Date(state.calYear, state.calMonth - 2, d));
-    html += `<div class="cal-cell other-month" onclick="calSelectDate('${ds}')">${d}</div>`;
+    const dateStr = formatDateStr(new Date(year, month - 1, d));
+    html += renderDayCell(d, dateStr, true, todayStr, eventMap);
   }
+
   // Current month
   for (let d = 1; d <= daysInMonth; d++) {
-    const ds = formatDate(new Date(state.calYear, state.calMonth - 1, d));
-    const recs = getRecordsForDate(ds);
-    const uniqueTypes = [...new Set(recs.map(r => r.type))];
-    const dots = uniqueTypes.map(t => `<span class="dot" style="background:${RECORD_TYPES[t]?.color||'#999'}"></span>`).join('');
-    const cls = ds === today ? ' today' : '';
-    const selCls = ds === state.calSelectedDate ? ' style="background:var(--primary-light);border-radius:12px;"' : '';
-    html += `<div class="cal-cell${cls}"${selCls} onclick="calSelectDate('${ds}')">${d}<div class="dots">${dots}</div></div>`;
+    const dateStr = formatDateStr(new Date(year, month, d));
+    html += renderDayCell(d, dateStr, false, todayStr, eventMap);
   }
+
   // Next month fill
-  const remaining = 42 - (firstDay + daysInMonth);
+  const remaining = 42 - firstDay - daysInMonth;
   for (let d = 1; d <= remaining; d++) {
-    const ds = formatDate(new Date(state.calYear, state.calMonth, d));
-    html += `<div class="cal-cell other-month" onclick="calSelectDate('${ds}')">${d}</div>`;
+    const dateStr = formatDateStr(new Date(year, month + 1, d));
+    html += renderDayCell(d, dateStr, true, todayStr, eventMap);
   }
+
   grid.innerHTML = html;
 
-  // Selected date panel
-  if (state.calSelectedDate) {
-    const recs = getRecordsForDate(state.calSelectedDate);
-    panel.innerHTML = `<div class="day-panel">
-      <h4>${state.calSelectedDate} · ${recs.length} 条记录</h4>
-      ${recs.length === 0 ? '<p style="color:var(--text-secondary);font-size:13px;">暂无记录</p>' :
-        recs.map(r => renderRecordItem(r)).join('')}
-    </div>`;
-  } else {
-    panel.innerHTML = '';
+  // Relative date
+  updateRelativeDate();
+}
+
+function renderDayCell(day, dateStr, isOtherMonth, todayStr, eventMap) {
+  const isToday = dateStr === todayStr;
+  const isSelected = dateStr === selectedDay;
+  let cls = 'day-cell';
+  if (isOtherMonth) cls += ' other-month';
+  if (isToday && !isSelected) cls += ' today';
+  if (isSelected) cls += ' selected';
+
+  let dotsHtml = '';
+  const types = eventMap[dateStr];
+  if (types) {
+    dotsHtml = '<div class="event-dots">' + [...types].map(t =>
+      `<span class="event-dot" style="background:${EVENT_TYPES[t].color}"></span>`
+    ).join('') + '</div>';
   }
+
+  return `<div class="${cls}" data-date="${dateStr}">${day}${dotsHtml}</div>`;
 }
 
-function calSelectDate(ds) {
-  state.calSelectedDate = ds;
-  renderCalendar();
+function updateRelativeDate() {
+  const el = document.getElementById('calRelative');
+  const target = selectedDay ? new Date(selectedDay + 'T00:00:00') : new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  const diff = Math.round((target - today) / 86400000);
+  if (diff === 0) el.textContent = '今天';
+  else if (diff === 1) el.textContent = '明天';
+  else if (diff === -1) el.textContent = '昨天';
+  else if (diff > 0) el.textContent = `${diff}天后`;
+  else el.textContent = `${Math.abs(diff)}天前`;
 }
 
-function renderRecordItem(r) {
-  const cat = state.cats.find(c => c.id === r.cat_id);
-  const catName = cat ? cat.name : '未知';
-  const t = RECORD_TYPES[r.type] || { label: r.type, color: '#999' };
-  const rel = relativeDays(r.date);
-  return `<div class="record-item" id="rec-${r.id}"
-    ontouchstart="handleTouchStart(event,'${r.id}')" ontouchend="handleTouchEnd(event,'${r.id}')">
-    <div class="type-dot" style="background:${t.color}"></div>
-    <div class="content">
-      <div class="top"><span class="cat-name">${escapeHtml(catName)}</span><span class="type-tag">${t.label}</span></div>
-      ${r.note ? `<div class="note">${escapeHtml(r.note)}</div>` : ''}
-      <div class="date-info">${r.date} · ${rel}</div>
-    </div>
-    <div class="delete-zone" onclick="deleteRecord('${r.id}')">删除</div>
-  </div>`;
+function formatDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
-// Swipe
-let touchStartX = 0, touchStartY = 0;
-function handleTouchStart(e, id) {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-}
-function handleTouchEnd(e, id) {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-    const el = document.getElementById('rec-' + id);
-    if (el) {
-      if (dx < -30) el.classList.add('swiped');
-      else if (dx > 30) el.classList.remove('swiped');
-    }
-  }
-}
-
-// ==================== History Page ====================
+// ========== History Rendering ==========
 function renderHistory() {
-  const list = document.getElementById('histList');
-  const empty = document.getElementById('emptyHist');
-  const search = (document.getElementById('histSearchInput')?.value || '').trim().toLowerCase();
+  const list = document.getElementById('recordList');
+  const empty = document.getElementById('historyEmpty');
+  const filterGroup = document.getElementById('historyCatFilter');
+  const batchBar = document.getElementById('batchBar');
+  const batchToggle = document.getElementById('batchToggle');
 
-  let filtered = [...state.records].sort((a,b) => b.date.localeCompare(a.date));
-  if (search) {
-    filtered = filtered.filter(r => {
-      const cat = state.cats.find(c => c.id === r.cat_id);
-      const typeLabel = RECORD_TYPES[r.type]?.label || r.type;
-      return (cat?.name || '').toLowerCase().includes(search) ||
-             typeLabel.toLowerCase().includes(search) ||
-             (r.note || '').toLowerCase().includes(search);
-    });
+  // Cat filter chips
+  filterGroup.innerHTML = `<span class="chip${historyCatFilter === 'all' ? ' selected' : ''}" data-cat="all">全部</span>` +
+    cats.map(c => `<span class="chip${historyCatFilter === c.id ? ' selected' : ''}" data-cat="${c.id}">${escapeHtml(c.name)}</span>`).join('');
+
+  // Filter records
+  let filtered = records;
+  if (historyCatFilter !== 'all') {
+    filtered = records.filter(r => r.cat_id === historyCatFilter);
   }
+  filtered.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
   if (filtered.length === 0) {
     list.innerHTML = '';
     empty.style.display = 'block';
   } else {
     empty.style.display = 'none';
-    list.innerHTML = filtered.map(r => renderRecordItem(r)).join('');
-  }
-
-  // Filters
-  const filtersDiv = document.getElementById('histFilters');
-  const catIds = [...new Set(state.records.map(r => r.cat_id))];
-  filtersDiv.innerHTML = catIds.map(cid => {
-    const cat = state.cats.find(c => c.id === cid);
-    return cat ? `<span class="chip" onclick="filterByCat('${cid}',this)">${escapeHtml(cat.name)}</span>` : '';
-  }).join('');
-}
-
-function filterByCat(cid, el) {
-  // Simple toggle - filter records by cat
-  el.classList.toggle('selected');
-  const selectedCats = new Set();
-  document.querySelectorAll('#histFilters .chip.selected').forEach(c => {
-    const id = state.cats.find(cat => escapeHtml(cat.name) === c.textContent);
-    if (id) selectedCats.add(id.id);
-  });
-  // For simplicity, just toggle visual and re-render with search
-  renderHistoryFiltered();
-}
-
-function renderHistoryFiltered() {
-  const list = document.getElementById('histList');
-  const search = (document.getElementById('histSearchInput')?.value || '').trim().toLowerCase();
-  const selectedEls = document.querySelectorAll('#histFilters .chip.selected');
-  const selectedNames = new Set(Array.from(selectedEls).map(e => e.textContent));
-
-  let filtered = [...state.records].sort((a,b) => b.date.localeCompare(a.date));
-  if (search) {
-    filtered = filtered.filter(r => {
-      const cat = state.cats.find(c => c.id === r.cat_id);
-      const typeLabel = RECORD_TYPES[r.type]?.label || r.type;
-      return (cat?.name || '').toLowerCase().includes(search) ||
-             typeLabel.toLowerCase().includes(search) ||
-             (r.note || '').toLowerCase().includes(search);
-    });
-  }
-  if (selectedNames.size > 0) {
-    filtered = filtered.filter(r => {
-      const cat = state.cats.find(c => c.id === r.cat_id);
-      return cat && selectedNames.has(cat.name);
-    });
-  }
-  list.innerHTML = filtered.map(r => renderRecordItem(r)).join('');
-}
-
-// ==================== Dashboard ====================
-function renderDashboard() {
-  const grid = document.getElementById('catGrid');
-  const empty = document.getElementById('emptyCats');
-  if (state.cats.length === 0) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-  } else {
-    empty.style.display = 'none';
-    grid.innerHTML = state.cats.map(c => {
-      const genderCls = c.gender === '母' ? 'gender-female' : 'gender-male';
-      return `<div class="cat-card" onclick="showEditCatModal(findCat('${c.id}'))">
-        <span class="gender-badge ${genderCls}">${c.gender}</span>
-        <div class="avatar">🐱</div>
-        <div class="name">${escapeHtml(c.name)}</div>
-        <div class="info">
-          ${c.breed ? '品种：' + escapeHtml(c.breed) + '<br>' : ''}
-          ${c.color ? '毛色：' + escapeHtml(c.color) + '<br>' : ''}
-          年龄：${getAge(c.birth)}<br>
-          ${c.weight ? '体重：' + c.weight + ' kg' : ''}
-        </div>
-      </div>`;
+    list.innerHTML = filtered.map(r => {
+      const cat = findCatById(r.cat_id);
+      const catName = cat ? cat.name : '未知猫咪';
+      const evt = EVENT_TYPES[r.type] || { label: r.type, color: '#999' };
+      const checked = selectedRecordIds.has(r.id) ? ' checked' : '';
+      const batchCls = batchMode ? ' batch' : '';
+      return `
+        <div class="record-item${batchCls}" data-record-id="${r.id}">
+          <div class="record-inner">
+            <input type="checkbox" class="record-checkbox"${checked} data-id="${r.id}">
+            <span class="record-date">${r.date}</span>
+            <span class="record-cat">${escapeHtml(catName)}</span>
+            <span class="record-type-tag tag-${r.type}">${evt.label}</span>
+            <span class="record-note">${escapeHtml(r.note || '')}</span>
+          </div>
+          <div class="delete-zone">删除</div>
+        </div>`;
     }).join('');
   }
+
+  // Batch bar
+  document.getElementById('batchSelectAll').checked = false;
+  updateBatchUI();
 }
 
-function findCat(id) { return state.cats.find(c => c.id === id); }
+function updateBatchUI() {
+  const batchBar = document.getElementById('batchBar');
+  if (batchMode) {
+    batchBar.classList.add('visible');
+    const total = document.querySelectorAll('#recordList .record-item').length;
+    document.getElementById('batchCount').textContent = selectedRecordIds.size;
+    document.getElementById('batchTotal').textContent = total;
+  } else {
+    batchBar.classList.remove('visible');
+  }
+}
 
-// ==================== Settings ====================
+// ========== Settings Rendering ==========
 function renderSettings() {
-  document.getElementById('statCats').textContent = state.cats.length;
-  document.getElementById('statRecords').textContent = state.records.length;
+  document.getElementById('statCats').textContent = cats.length;
+  document.getElementById('statRecords').textContent = records.length;
 
-  // Theme colors
-  document.querySelectorAll('.color-dot').forEach(d => {
-    d.classList.toggle('active', d.dataset.color === state.theme);
+  // Theme dots
+  const currentTheme = document.documentElement.style.getPropertyValue('--primary').trim();
+  document.querySelectorAll('.theme-dot').forEach(dot => {
+    dot.classList.toggle('active', dot.dataset.theme === currentTheme);
   });
 
   // Dark mode
-  document.getElementById('darkToggle').classList.toggle('on', state.darkMode);
+  const toggle = document.getElementById('darkToggle');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  toggle.classList.toggle('on', isDark);
 }
 
-function toggleDarkMode() {
-  state.darkMode = !state.darkMode;
-  document.body.classList.toggle('dark', state.darkMode);
-  saveLocal();
-  renderSettings();
+// ========== Modal System ==========
+function showModal(html) {
+  const container = document.getElementById('modalContainer');
+  container.innerHTML = `<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet" id="modalSheet">${html}</div></div>`;
+  document.body.style.overflow = 'hidden';
+
+  // Close on overlay click
+  const overlay = document.getElementById('modalOverlay');
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeModal();
+  });
 }
 
-// Theme color dots click handler
-document.getElementById('colorOptions').addEventListener('click', function(e) {
-  const dot = e.target.closest('.color-dot');
-  if (!dot) return;
-  state.theme = dot.dataset.color;
-  document.documentElement.style.setProperty('--primary', state.theme);
-  saveLocal();
-  renderSettings();
-  toast('主题已切换', 'success');
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+// ========== Cat Form Modal ==========
+function showCatForm(cat = null) {
+  const isEdit = !!cat;
+  const title = isEdit ? '编辑猫咪' : '添加猫咪';
+  const data = cat || { name: '', breed: '', color: '', gender: '', birth: '', weight: '', photo: '' };
+
+  const breedOptions = ['英短', '美短', '布偶', '暹罗', '波斯', '缅因', '橘猫', '狸花', '三花', '奶牛', '折耳', '德文', '无毛', '其他'].map(b =>
+    `<option value="${b}"${data.breed === b ? ' selected' : ''}>${b}</option>`
+  ).join('');
+
+  const colorOptions = ['白色', '黑色', '橘色', '灰色', '虎斑', '三花', '奶牛色', '重点色', '蓝色', '奶油色', '玳瑁', '其他'].map(c =>
+    `<option value="${c}"${data.color === c ? ' selected' : ''}>${c}</option>`
+  ).join('');
+
+  const html = `
+    <div class="modal-handle"></div>
+    <div class="modal-title">${title}</div>
+    <div class="form-group">
+      <label class="form-label">名字 *</label>
+      <input class="form-input" id="catName" value="${escapeHtml(data.name)}" placeholder="给猫咪起个名字" maxlength="30">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">品种</label>
+        <input class="form-input" id="catBreed" list="breedList" value="${escapeHtml(data.breed)}" placeholder="选择或输入" autocomplete="off">
+        <datalist id="breedList">${breedOptions}</datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">毛色</label>
+        <input class="form-input" id="catColor" list="colorList" value="${escapeHtml(data.color)}" placeholder="选择或输入" autocomplete="off">
+        <datalist id="colorList">${colorOptions}</datalist>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">性别</label>
+        <div class="chip-group" id="genderChips">
+          <span class="chip${data.gender === '公' ? ' selected' : ''}" data-gender="公">公 🐱</span>
+          <span class="chip${data.gender === '母' ? ' selected' : ''}" data-gender="母">母 🐱</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">出生日期</label>
+        <input class="form-input" type="date" id="catBirth" value="${data.birth || ''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">体重 (kg)</label>
+      <input class="form-input" type="number" id="catWeight" value="${data.weight || ''}" placeholder="例如 4.5" step="0.1" min="0" max="30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">照片</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <input type="file" id="catPhotoInput" accept="image/*" style="display:none">
+        <button class="btn btn-ghost" id="uploadBtn" style="flex-shrink:0">📷 选择照片</button>
+        <span id="photoStatus" style="font-size:0.78rem;color:var(--text-secondary)">${data.photo ? '已选择照片' : ''}</span>
+      </div>
+      <canvas id="animeCanvas" style="display:none"></canvas>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      ${isEdit ? '<button class="btn btn-danger" id="deleteCatBtn" style="flex:1">删除</button>' : ''}
+      <button class="btn btn-primary" id="saveCatBtn" style="flex:1">保存</button>
+    </div>
+  `;
+
+  showModal(html);
+  setupCatFormEvents(cat);
+}
+
+function setupCatFormEvents(cat) {
+  let photoData = cat ? cat.photo : '';
+  let genderChoice = cat ? cat.gender : '';
+
+  // Gender chips
+  document.querySelectorAll('#genderChips .chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('#genderChips .chip').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      genderChoice = this.dataset.gender;
+    });
+  });
+
+  // Photo upload
+  const fileInput = document.getElementById('catPhotoInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const photoStatus = document.getElementById('photoStatus');
+
+  uploadBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        photoData = applyAnimeFilter(img);
+        photoStatus.textContent = '动漫化处理完成 ✓';
+        photoStatus.style.color = '#4caf50';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    photoStatus.textContent = '处理中...';
+  });
+
+  // Save
+  const saveBtn = document.getElementById('saveCatBtn');
+  saveBtn.addEventListener('click', async function() {
+    const name = document.getElementById('catName').value.trim();
+    if (!name) { showToast('请输入猫咪名字', 'error'); return; }
+
+    const data = {
+      name,
+      breed: document.getElementById('catBreed').value.trim(),
+      color: document.getElementById('catColor').value.trim(),
+      gender: genderChoice,
+      birth: document.getElementById('catBirth').value,
+      weight: document.getElementById('catWeight').value,
+      photo: photoData
+    };
+
+    if (cat) {
+      await updateCat(cat.id, data);
+    } else {
+      await addCat(data);
+    }
+    closeModal();
+  });
+
+  // Delete
+  const delBtn = document.getElementById('deleteCatBtn');
+  if (delBtn) {
+    delBtn.addEventListener('click', async function() {
+      if (confirm(`确定删除 ${cat.name} 的所有档案吗？`)) {
+        await deleteCat(cat.id);
+        closeModal();
+      }
+    });
+  }
+}
+
+// ========== Record Form Modal ==========
+function showRecordForm(dateStr) {
+  selectedDay = dateStr;
+
+  const catChips = cats.map(c =>
+    `<span class="chip" data-cat-id="${c.id}">${escapeHtml(c.name)}</span>`
+  ).join('');
+
+  const typeChips = Object.entries(EVENT_TYPES).map(([key, val]) =>
+    `<span class="chip color-${key}" data-type="${key}" style="border-left:3px solid ${val.color}">${val.label}</span>`
+  ).join('');
+
+  const html = `
+    <div class="modal-handle"></div>
+    <div class="modal-title">添加记录 · ${dateStr}</div>
+    <div class="form-group">
+      <label class="form-label">选择猫咪（可多选）</label>
+      <div class="chip-group" id="recordCatChips">${catChips || '<span style="color:var(--text-muted);font-size:0.8rem;">请先添加猫咪</span>'}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">记录类型</label>
+      <div class="chip-group" id="recordTypeChips">${typeChips}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input class="form-input" type="date" id="recordDate" value="${dateStr}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">备注</label>
+      <input class="form-input" id="recordNote" placeholder="可选备注" maxlength="200">
+    </div>
+    <button class="btn btn-primary" id="saveRecordBtn">保存记录</button>
+  `;
+
+  showModal(html);
+  setupRecordFormEvents();
+}
+
+function setupRecordFormEvents() {
+  const selectedCatIds = new Set();
+  let selectedType = null;
+
+  // Cat chips
+  document.querySelectorAll('#recordCatChips .chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      this.classList.toggle('selected');
+      const id = this.dataset.catId;
+      if (this.classList.contains('selected')) selectedCatIds.add(id);
+      else selectedCatIds.delete(id);
+    });
+  });
+
+  // Type chips
+  document.querySelectorAll('#recordTypeChips .chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('#recordTypeChips .chip').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      selectedType = this.dataset.type;
+    });
+  });
+
+  // Save
+  document.getElementById('saveRecordBtn').addEventListener('click', async function() {
+    if (selectedCatIds.size === 0) { showToast('请至少选择一只猫咪', 'error'); return; }
+    if (!selectedType) { showToast('请选择记录类型', 'error'); return; }
+
+    const date = document.getElementById('recordDate').value;
+    const note = document.getElementById('recordNote').value.trim();
+
+    for (const catId of selectedCatIds) {
+      await addRecord({ cat_id: catId, type: selectedType, date, note });
+    }
+    closeModal();
+    selectedDay = null;
+    updateRelativeDate();
+  });
+}
+
+// ========== Anime Filter ==========
+function applyAnimeFilter(img) {
+  const canvas = document.createElement('canvas');
+  const maxW = 300, maxH = 300;
+  let w = img.width, h = img.height;
+  if (w > maxW) { h = h * maxW / w; w = maxW; }
+  if (h > maxH) { w = w * maxH / h; h = maxH; }
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const src = ctx.getImageData(0, 0, w, h);
+  const data = src.data;
+  const edgeData = new Uint8ClampedArray(data.length);
+
+  // Step 1: Sobel edge detection
+  const gray = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    gray[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  }
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const tl = gray[(y-1)*w + x-1], tc = gray[(y-1)*w + x], tr = gray[(y-1)*w + x+1];
+      const ml = gray[y*w + x-1], mr = gray[y*w + x+1];
+      const bl = gray[(y+1)*w + x-1], bc = gray[(y+1)*w + x], br = gray[(y+1)*w + x+1];
+      const gx = -tl + tr - 2*ml + 2*mr - bl + br;
+      const gy = tl + 2*tc + tr - bl - 2*bc - br;
+      const mag = Math.min(255, Math.sqrt(gx*gx + gy*gy));
+      const idx = (y*w + x) * 4;
+      edgeData[idx] = edgeData[idx+1] = edgeData[idx+2] = mag;
+      edgeData[idx+3] = 255;
+    }
+  }
+
+  // Step 2: Color quantization (posterize to 4 levels per channel)
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    for (let ch = 0; ch < 3; ch++) {
+      data[idx + ch] = Math.round(data[idx + ch] / 64) * 64 + 32;
+    }
+  }
+
+  // Step 3: Darken edges for anime line art effect
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    const edgeStrength = Math.min(1, edgeData[idx] / 180) * 0.65;
+    for (let ch = 0; ch < 3; ch++) {
+      data[idx + ch] = Math.round(data[idx + ch] * (1 - edgeStrength));
+    }
+  }
+
+  // Step 4: Saturation boost
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    const r = data[idx], g = data[idx+1], b = data[idx+2];
+    const maxC = Math.max(r, g, b);
+    const minC = Math.min(r, g, b);
+    const l = (maxC + minC) / 2;
+    const s = maxC === minC ? 0 : (maxC - minC) / (1 - Math.abs(2*l/255 - 1));
+    const newS = Math.min(1, s * 1.5);
+    if (maxC !== minC) {
+      const factor = newS / (s || 0.01);
+      data[idx] = Math.min(255, Math.round(l + (r - l) * factor));
+      data[idx+1] = Math.min(255, Math.round(l + (g - l) * factor));
+      data[idx+2] = Math.min(255, Math.round(l + (b - l) * factor));
+    }
+  }
+
+  // Step 5: Light smoothing (3x3 box blur, 1 pass)
+  const blur = new Uint8ClampedArray(data.length);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = (y*w + x) * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        let sum = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++)
+            sum += data[((y+dy)*w + x+dx) * 4 + ch];
+        blur[idx + ch] = Math.round(sum / 9);
+      }
+      blur[idx+3] = 255;
+    }
+  }
+  // Write blur to edges only
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    if (edgeData[idx] > 0) {
+      data[idx] = blur[idx];
+      data[idx+1] = blur[idx+1];
+      data[idx+2] = blur[idx+2];
+    }
+  }
+
+  ctx.putImageData(src, 0, 0);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+// ========== Toast ==========
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 2600);
+}
+
+// ========== Event Delegation ==========
+function setupGlobalEvents() {
+  // Tab switching
+  document.querySelector('.tab-bar').addEventListener('click', function(e) {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    const page = btn.dataset.page;
+    switchPage(page);
+  });
+
+  // Dashboard: cat card click
+  document.getElementById('catsGrid').addEventListener('click', function(e) {
+    const card = e.target.closest('.cat-card');
+    if (!card) return;
+    const catId = card.dataset.catId;
+    const cat = findCatById(catId);
+    if (cat) showCatForm(cat);
+  });
+
+  // FAB
+  document.getElementById('fabAdd').addEventListener('click', function() {
+    if (currentPage === 'dashboard') showCatForm();
+    else if (currentPage === 'calendar') {
+      const today = formatDateStr(new Date());
+      showRecordForm(today);
+    }
+  });
+
+  // Calendar grid clicks
+  document.getElementById('calGrid').addEventListener('click', function(e) {
+    const cell = e.target.closest('.day-cell');
+    if (!cell) return;
+    const dateStr = cell.dataset.date;
+    if (!dateStr) return;
+
+    // Toggle selected
+    if (selectedDay === dateStr) {
+      selectedDay = null;
+    } else {
+      selectedDay = dateStr;
+    }
+    renderCalendar();
+
+    // Show record form
+    showRecordForm(dateStr);
+  });
+
+  // Calendar navigation
+  document.getElementById('calPrev').addEventListener('click', function() {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+    selectedDay = null;
+    renderCalendar();
+  });
+  document.getElementById('calNext').addEventListener('click', function() {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+    selectedDay = null;
+    renderCalendar();
+  });
+  document.getElementById('calToday').addEventListener('click', function() {
+    currentMonth = new Date();
+    selectedDay = null;
+    renderCalendar();
+  });
+
+  // History cat filter
+  document.getElementById('historyCatFilter').addEventListener('click', function(e) {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    historyCatFilter = chip.dataset.cat;
+    selectedRecordIds.clear();
+    renderHistory();
+  });
+
+  // History swipe delete
+  const recordList = document.getElementById('recordList');
+  recordList.addEventListener('touchstart', handleSwipeStart, { passive: true });
+  recordList.addEventListener('touchmove', handleSwipeMove, { passive: false });
+  recordList.addEventListener('touchend', handleSwipeEnd);
+  recordList.addEventListener('mousedown', handleSwipeStart);
+
+  // History delete zone click
+  recordList.addEventListener('click', function(e) {
+    if (batchMode) return;
+    const delZone = e.target.closest('.delete-zone');
+    if (!delZone) return;
+    const item = delZone.closest('.record-item');
+    if (!item) return;
+    const id = item.dataset.recordId;
+    if (id) deleteRecord(id);
+  });
+
+  // History checkbox click in batch mode
+  recordList.addEventListener('change', function(e) {
+    if (!batchMode) return;
+    const cb = e.target.closest('.record-checkbox');
+    if (!cb) return;
+    const id = cb.dataset.id;
+    if (cb.checked) selectedRecordIds.add(id);
+    else selectedRecordIds.delete(id);
+    updateBatchUI();
+  });
+
+  // Batch toggle
+  document.getElementById('batchToggle').addEventListener('click', function() {
+    batchMode = !batchMode;
+    selectedRecordIds.clear();
+    const toggle = document.getElementById('batchToggle');
+    toggle.textContent = batchMode ? '取消' : '选择';
+    renderHistory();
+  });
+
+  // Batch select all
+  document.getElementById('batchSelectAll').addEventListener('change', function() {
+    const items = document.querySelectorAll('#recordList .record-item');
+    selectedRecordIds.clear();
+    if (this.checked) {
+      items.forEach(item => selectedRecordIds.add(item.dataset.recordId));
+    }
+    // Update checkboxes
+    document.querySelectorAll('#recordList .record-checkbox').forEach(cb => {
+      cb.checked = this.checked;
+    });
+    updateBatchUI();
+  });
+
+  // Batch delete
+  document.getElementById('batchDelete').addEventListener('click', async function() {
+    if (selectedRecordIds.size === 0) { showToast('请先选择记录', 'error'); return; }
+    if (confirm(`确定删除 ${selectedRecordIds.size} 条记录吗？`)) {
+      await deleteRecords(selectedRecordIds);
+      batchMode = false;
+      document.getElementById('batchToggle').textContent = '选择';
+      renderHistory();
+    }
+  });
+
+  // Theme dots
+  document.getElementById('themeDots').addEventListener('click', function(e) {
+    const dot = e.target.closest('.theme-dot');
+    if (!dot) return;
+    const color = dot.dataset.theme;
+    setTheme(color);
+  });
+
+  // Dark mode toggle
+  document.getElementById('darkToggle').addEventListener('click', function() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    this.classList.toggle('on', !isDark);
+    localStorage.setItem(STORAGE_KEY_DARK, !isDark ? 'dark' : 'light');
+  });
+
+  // Close modal on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+}
+
+function handleSwipeStart(e) {
+  if (batchMode) return;
+  const item = e.target.closest('.record-item');
+  if (!item) return;
+  const x = e.touches ? e.touches[0].clientX : e.clientX;
+  swipeState = { target: item, startX: x, movedX: 0, swiping: true };
+}
+
+function handleSwipeMove(e) {
+  if (!swipeState.swiping || batchMode) return;
+  const x = e.touches ? e.touches[0].clientX : e.clientX;
+  const dx = x - swipeState.startX;
+  swipeState.movedX = dx;
+  if (dx < 0) {
+    e.preventDefault();
+    const translate = Math.max(-80, dx);
+    swipeState.target.querySelector('.record-inner').style.transform = `translateX(${translate}px)`;
+    if (dx < -60) swipeState.target.classList.add('swiped');
+    else swipeState.target.classList.remove('swiped');
+  }
+}
+
+function handleSwipeEnd() {
+  if (!swipeState.swiping) return;
+  if (swipeState.movedX > -30) {
+    swipeState.target.classList.remove('swiped');
+    swipeState.target.querySelector('.record-inner').style.transform = '';
+  }
+  swipeState = { target: null, startX: 0, movedX: 0, swiping: false };
+}
+
+// Global mouse up for swipe
+document.addEventListener('mouseup', function() {
+  if (swipeState.swiping) handleSwipeEnd();
+});
+document.addEventListener('mousemove', function(e) {
+  if (swipeState.swiping) handleSwipeMove(e);
 });
 
-// ==================== Page Navigation ====================
+// ========== Page Switching ==========
 function switchPage(page) {
-  state.activePage = page;
+  currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.tabbar .tab[data-page="${page}"]`).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
 
-  const titles = { dashboard: '我的猫咪', calendar: '日历', history: '记录历史', settings: '设置' };
-  document.getElementById('pageTitle').textContent = titles[page] || '';
+  const fab = document.getElementById('fabAdd');
+  if (page === 'dashboard') {
+    fab.style.display = 'flex';
+    fab.textContent = '+';
+  } else if (page === 'calendar') {
+    fab.style.display = 'flex';
+    fab.textContent = '+';
+  } else {
+    fab.style.display = 'none';
+  }
 
-  if (page === 'dashboard') renderDashboard();
-  else if (page === 'calendar') renderCalendar();
-  else if (page === 'history') renderHistory();
-  else if (page === 'settings') renderSettings();
+  if (page === 'calendar') renderCalendar();
+  if (page === 'history') renderHistory();
+  if (page === 'settings') renderSettings();
 }
 
-// ==================== Refresh All ====================
-function refreshAll() {
-  if (state.activePage === 'dashboard') renderDashboard();
-  else if (state.activePage === 'calendar') renderCalendar();
-  else if (state.activePage === 'history') renderHistory();
-  else if (state.activePage === 'settings') renderSettings();
+// ========== Theme ==========
+function setTheme(color) {
+  document.documentElement.style.setProperty('--primary', color);
+  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(color));
+  localStorage.setItem(STORAGE_KEY_THEME, color);
+  renderSettings();
 }
 
-// ==================== Escape HTML ====================
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+// ========== Online/Offline ==========
+function updateOnlineStatus() {
+  isOnline = navigator.onLine;
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot ' + (isOnline ? 'online' : 'offline');
+  dot.title = isOnline ? '在线 - 实时同步' : '离线 - 本地存储';
+
+  if (isOnline) {
+    loadRemoteData().then(() => refreshAllViews());
+  }
+}
+
+// ========== Utilities ==========
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
-// ==================== Init ====================
+// ========== Init ==========
 async function init() {
-  loadLocal();
+  // Load theme
+  const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+  if (savedTheme) setTheme(savedTheme);
 
-  // Apply theme
-  document.documentElement.style.setProperty('--primary', state.theme);
-  if (state.darkMode) document.body.classList.add('dark');
-
-  // Sync from Supabase
-  if (onlineMode) {
-    updateSyncStatus(false);
-    await syncFromSupabase();
-    setupRealtime();
-  } else {
-    updateSyncStatus(false);
+  // Load dark mode
+  const savedDark = localStorage.getItem(STORAGE_KEY_DARK);
+  if (savedDark === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('darkToggle').classList.add('on');
   }
 
-  renderDashboard();
-  renderSettings();
+  // Load local data first
+  loadLocalData();
 
-  // Bind FAB buttons
-  const fabAddCat = document.getElementById('fabAddCat');
-  if (fabAddCat) fabAddCat.addEventListener('click', showAddCatModal);
+  // Init Supabase
+  const supabaseOk = initSupabase();
+  updateOnlineStatus();
+
+  // Load remote if online
+  if (supabaseOk && navigator.onLine) {
+    await loadRemoteData();
+  }
+
+  // Render
+  refreshAllViews();
+
+  // Setup events
+  setupGlobalEvents();
+
+  // Listen for online/offline
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  console.log('🐱 猫咪管家 v1.0 初始化完成');
 }
 
-init();
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
