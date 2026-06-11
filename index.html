@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>猫咪管家 v1.0</title>
+<title>猫咪管家 v1.01</title>
 <style>
 /* ========== CSS Variables ========== */
 :root {
@@ -321,11 +321,10 @@ body {
 }
 
 .day-cell {
-  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
@@ -334,6 +333,8 @@ body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   min-height: 44px;
+  padding: 3px 2px 4px;
+  gap: 1px;
 }
 
 .day-cell:hover { background: var(--bg-input); }
@@ -342,20 +343,58 @@ body {
 .day-cell.selected { background: var(--primary); color: #fff; font-weight: 700; }
 .day-cell.selected.today { background: var(--primary); color: #fff; }
 
-.day-cell .event-dots {
-  display: flex;
-  gap: 3px;
-  margin-top: 2px;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 100%;
-}
-.day-cell .event-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+.day-cell .day-num {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  font-weight: inherit;
   flex-shrink: 0;
 }
+
+.day-cell .event-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.day-cell .event-tag {
+  font-size: 8px;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
+.day-cell .event-tag.tag-more {
+  background: #999;
+  font-size: 7px;
+}
+
+/* Date picker button */
+.date-picker-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(var(--primary-rgb), 0.06);
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.date-picker-btn:hover { background: rgba(var(--primary-rgb), 0.12); border-color: var(--primary); }
+.date-picker-btn::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
 
 .calendar-relative {
   text-align: center;
@@ -597,6 +636,13 @@ body {
 .tag-nail_trim { background: var(--event-nail_trim); }
 .tag-litter_box { background: var(--event-litter_box); }
 
+.record-item .record-type-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+
 .record-item .record-note {
   font-size: 0.78rem;
   color: var(--text-secondary);
@@ -740,6 +786,10 @@ body {
   .cats-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
   .cat-card { padding: 12px; }
   .cat-card .cat-avatar { width: 52px; height: 52px; }
+  .day-cell { min-height: 40px; padding: 2px 1px 3px; }
+  .day-cell .day-num { font-size: 0.75rem; }
+  .day-cell .event-tag { font-size: 7px; padding: 1px 3px; }
+  .date-picker-btn { height: 32px; padding: 0 8px; font-size: 0.7rem; }
 }
 </style>
 </head>
@@ -768,6 +818,7 @@ body {
       <button class="btn-icon" id="calPrev">◀</button>
       <span class="calendar-month" id="calMonth"></span>
       <button class="btn-icon" id="calNext">▶</button>
+      <input type="date" class="date-picker-btn" id="calDatePicker" title="快速跳转日期">
       <button class="btn-today" id="calToday">今天</button>
     </div>
     <div class="weekday-row">
@@ -1191,15 +1242,22 @@ function renderDayCell(day, dateStr, isOtherMonth, todayStr, eventMap) {
   if (isToday && !isSelected) cls += ' today';
   if (isSelected) cls += ' selected';
 
-  let dotsHtml = '';
+  let tagsHtml = '';
   const types = eventMap[dateStr];
   if (types) {
-    dotsHtml = '<div class="event-dots">' + [...types].map(t =>
-      `<span class="event-dot" style="background:${EVENT_TYPES[t].color}"></span>`
-    ).join('') + '</div>';
+    const typeArr = [...types];
+    const showTypes = typeArr.slice(0, 2);
+    const extra = typeArr.length - 2;
+    tagsHtml = '<div class="event-tags">' +
+      showTypes.map(t => {
+        const evt = EVENT_TYPES[t] || { label: t, color: '#999' };
+        return `<span class="event-tag" style="background:${evt.color}">${evt.label}</span>`;
+      }).join('') +
+      (extra > 0 ? `<span class="event-tag tag-more">+${extra}</span>` : '') +
+      '</div>';
   }
 
-  return `<div class="${cls}" data-date="${dateStr}">${day}${dotsHtml}</div>`;
+  return `<div class="${cls}" data-date="${dateStr}"><span class="day-num">${day}</span>${tagsHtml}</div>`;
 }
 
 function updateRelativeDate() {
@@ -1231,6 +1289,20 @@ function renderHistory() {
   const batchBar = document.getElementById('batchBar');
   const batchToggle = document.getElementById('batchToggle');
 
+  const EVENT_ICONS = {
+    deworm: '💊', vaccine: '💉', bath: '🛁',
+    checkup: '🩺', nail_trim: '✂️', litter_box: '🚽'
+  };
+
+  function formatDateFull(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    return `${y}年${m}月${day}日 周${weekdays[d.getDay()]}`;
+  }
+
   // Cat filter chips
   filterGroup.innerHTML = `<span class="chip${historyCatFilter === 'all' ? ' selected' : ''}" data-cat="all">全部</span>` +
     cats.map(c => `<span class="chip${historyCatFilter === c.id ? ' selected' : ''}" data-cat="${c.id}">${escapeHtml(c.name)}</span>`).join('');
@@ -1251,14 +1323,16 @@ function renderHistory() {
       const cat = findCatById(r.cat_id);
       const catName = cat ? cat.name : '未知猫咪';
       const evt = EVENT_TYPES[r.type] || { label: r.type, color: '#999' };
+      const icon = EVENT_ICONS[r.type] || '📌';
       const checked = selectedRecordIds.has(r.id) ? ' checked' : '';
       const batchCls = batchMode ? ' batch' : '';
       return `
         <div class="record-item${batchCls}" data-record-id="${r.id}">
           <div class="record-inner">
             <input type="checkbox" class="record-checkbox"${checked} data-id="${r.id}">
-            <span class="record-date">${r.date}</span>
+            <span class="record-date">${formatDateFull(r.date)}</span>
             <span class="record-cat">${escapeHtml(catName)}</span>
+            <span class="record-type-icon" title="${evt.label}">${icon}</span>
             <span class="record-type-tag tag-${r.type}">${evt.label}</span>
             <span class="record-note">${escapeHtml(r.note || '')}</span>
           </div>
@@ -1541,100 +1615,310 @@ function setupRecordFormEvents() {
 
 // ========== Anime Filter ==========
 function applyAnimeFilter(img) {
-  const canvas = document.createElement('canvas');
   const maxW = 300, maxH = 300;
   let w = img.width, h = img.height;
-  if (w > maxW) { h = h * maxW / w; w = maxW; }
-  if (h > maxH) { w = w * maxH / h; h = maxH; }
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, w, h);
-  const src = ctx.getImageData(0, 0, w, h);
+  if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+  if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+
+  // Source canvas
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = w; srcCanvas.height = h;
+  const sctx = srcCanvas.getContext('2d');
+  sctx.drawImage(img, 0, 0, w, h);
+  const src = sctx.getImageData(0, 0, w, h);
   const data = src.data;
-  const edgeData = new Uint8ClampedArray(data.length);
 
-  // Step 1: Sobel edge detection
-  const gray = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    gray[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  // Step 1: Bilateral filter (edge-preserving smooth)
+  bilateralFilter(data, w, h, 2, 40);
+
+  // Step 2: Simplified color quantization (posterize + palette reduction)
+  kmeansQuantize(data, w, h, 10);
+
+  // Step 3: Saturation boost 1.3x + warm color shift (+10 hue)
+  adjustHSL(data, w, h, 1.3, 10);
+
+  // Step 4: Gaussian blur
+  const blurData = gaussianBlur3x3(data, w, h);
+
+  // Step 5: USM sharpen (amount=1.0)
+  usmSharpen(data, blurData, w, h, 1.0);
+
+  // Step 6: Warm overlay (#ffd4c4 at 8% opacity)
+  applyOverlay(data, w, h, 255, 212, 196, 0.08);
+
+  // Put processed data back
+  sctx.putImageData(src, 0, 0);
+
+  // Output: rounded corners + soft shadow (anime card feel)
+  return renderAnimeCard(srcCanvas, w, h);
+}
+
+// --- Bilateral filter (3x3 kernel) ---
+function bilateralFilter(data, w, h, radius, sigmaR) {
+  const r = radius || 2;
+  const sr = sigmaR || 40;
+  const sS = r; // spatial sigma
+  const tmp = new Uint8ClampedArray(data);
+  const spatialWeights = [];
+  const kSize = 2 * r + 1;
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      spatialWeights.push(Math.exp(-(dx*dx + dy*dy) / (2 * sS * sS)));
+    }
   }
+  const twoSigmaR2 = 2 * sr * sr;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ci = (y * w + x) * 4;
+      const cr = tmp[ci], cg = tmp[ci+1], cb = tmp[ci+2];
+      let sumR = 0, sumG = 0, sumB = 0, totalW = 0;
+      let wi = 0;
+      for (let dy = -r; dy <= r; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= h) { wi += kSize; continue; }
+        for (let dx = -r; dx <= r; dx++) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w) { wi++; continue; }
+          const ni = (ny * w + nx) * 4;
+          const nr = tmp[ni], ng = tmp[ni+1], nb = tmp[ni+2];
+          const dr = cr - nr, dg = cg - ng, db = cb - nb;
+          const colorDist = dr*dr + dg*dg + db*db;
+          const wgt = spatialWeights[wi] * Math.exp(-colorDist / twoSigmaR2);
+          sumR += nr * wgt; sumG += ng * wgt; sumB += nb * wgt;
+          totalW += wgt;
+          wi++;
+        }
+      }
+      data[ci] = totalW > 0 ? Math.round(sumR / totalW) : cr;
+      data[ci+1] = totalW > 0 ? Math.round(sumG / totalW) : cg;
+      data[ci+2] = totalW > 0 ? Math.round(sumB / totalW) : cb;
+    }
+  }
+}
+
+// --- K-means color quantization ---
+function kmeansQuantize(data, w, h, k) {
+  if (k < 2) k = 8;
+  // Sample pixels (every 4th)
+  const samples = [];
+  for (let y = 0; y < h; y += 4) {
+    for (let x = 0; x < w; x += 4) {
+      const i = (y * w + x) * 4;
+      samples.push([data[i], data[i+1], data[i+2]]);
+    }
+  }
+  if (samples.length < k) k = samples.length;
+  if (k < 2) return;
+
+  // Initialize centroids using k-means++ style (first random, then farthest)
+  const centroids = [];
+  centroids.push(samples[Math.floor(Math.random() * samples.length)].slice());
+  for (let c = 1; c < k; c++) {
+    let maxDist = -1, best = samples[0];
+    for (const s of samples) {
+      let minD = Infinity;
+      for (const ct of centroids) {
+        const d = (s[0]-ct[0])**2 + (s[1]-ct[1])**2 + (s[2]-ct[2])**2;
+        if (d < minD) minD = d;
+      }
+      if (minD > maxDist) { maxDist = minD; best = s; }
+    }
+    centroids.push(best.slice());
+  }
+
+  // Lloyd iterations
+  const labels = new Array(samples.length);
+  for (let iter = 0; iter < 8; iter++) {
+    // Assign
+    for (let i = 0; i < samples.length; i++) {
+      let minD = Infinity, bestC = 0;
+      for (let j = 0; j < k; j++) {
+        const c = centroids[j];
+        const d = (samples[i][0]-c[0])**2 + (samples[i][1]-c[1])**2 + (samples[i][2]-c[2])**2;
+        if (d < minD) { minD = d; bestC = j; }
+      }
+      labels[i] = bestC;
+    }
+    // Update
+    const sums = Array.from({length: k}, () => [0, 0, 0, 0]);
+    for (let i = 0; i < samples.length; i++) {
+      const c = labels[i];
+      sums[c][0] += samples[i][0]; sums[c][1] += samples[i][1];
+      sums[c][2] += samples[i][2]; sums[c][3]++;
+    }
+    for (let j = 0; j < k; j++) {
+      if (sums[j][3] > 0) {
+        centroids[j] = [Math.round(sums[j][0]/sums[j][3]), Math.round(sums[j][1]/sums[j][3]), Math.round(sums[j][2]/sums[j][3])];
+      }
+    }
+  }
+
+  // Quantize all pixels
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      let minD = Infinity, bestC = 0;
+      for (let j = 0; j < k; j++) {
+        const c = centroids[j];
+        const d = (r-c[0])**2 + (g-c[1])**2 + (b-c[2])**2;
+        if (d < minD) { minD = d; bestC = j; }
+      }
+      data[i] = centroids[bestC][0];
+      data[i+1] = centroids[bestC][1];
+      data[i+2] = centroids[bestC][2];
+    }
+  }
+}
+
+// --- HSL adjustment: saturation * factor, hue + offset ---
+function adjustHSL(data, w, h, satFactor, hueOffset) {
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      let r = data[i] / 255, g = data[i+1] / 255, b = data[i+2] / 255;
+      const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+      const l = (maxC + minC) / 2;
+      if (maxC === minC) continue; // gray
+      const d = maxC - minC;
+      let s = l > 0.5 ? d / (2 - maxC - minC) : d / (maxC + minC);
+      // Hue
+      let h;
+      if (maxC === r) h = ((g - b) / d) % 6;
+      else if (maxC === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = (h * 60 + 360) % 360;
+      // Adjust
+      h = (h + hueOffset + 360) % 360;
+      s = Math.min(1, s * satFactor);
+      // Convert back
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      const m = l - c / 2;
+      let rr, gg, bb;
+      if (h < 60) { rr = c; gg = x; bb = 0; }
+      else if (h < 120) { rr = x; gg = c; bb = 0; }
+      else if (h < 180) { rr = 0; gg = c; bb = x; }
+      else if (h < 240) { rr = 0; gg = x; bb = c; }
+      else if (h < 300) { rr = x; gg = 0; bb = c; }
+      else { rr = c; gg = 0; bb = x; }
+      data[i] = Math.round((rr + m) * 255);
+      data[i+1] = Math.round((gg + m) * 255);
+      data[i+2] = Math.round((bb + m) * 255);
+    }
+  }
+}
+
+// --- 3x3 Gaussian blur ---
+function gaussianBlur3x3(data, w, h) {
+  const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1]; // normalized by /16
+  const out = new Uint8ClampedArray(data);
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
-      const tl = gray[(y-1)*w + x-1], tc = gray[(y-1)*w + x], tr = gray[(y-1)*w + x+1];
-      const ml = gray[y*w + x-1], mr = gray[y*w + x+1];
-      const bl = gray[(y+1)*w + x-1], bc = gray[(y+1)*w + x], br = gray[(y+1)*w + x+1];
-      const gx = -tl + tr - 2*ml + 2*mr - bl + br;
-      const gy = tl + 2*tc + tr - bl - 2*bc - br;
-      const mag = Math.min(255, Math.sqrt(gx*gx + gy*gy));
-      const idx = (y*w + x) * 4;
-      edgeData[idx] = edgeData[idx+1] = edgeData[idx+2] = mag;
-      edgeData[idx+3] = 255;
-    }
-  }
-
-  // Step 2: Color quantization (posterize to 4 levels per channel)
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    for (let ch = 0; ch < 3; ch++) {
-      data[idx + ch] = Math.round(data[idx + ch] / 64) * 64 + 32;
-    }
-  }
-
-  // Step 3: Darken edges for anime line art effect
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    const edgeStrength = Math.min(1, edgeData[idx] / 180) * 0.65;
-    for (let ch = 0; ch < 3; ch++) {
-      data[idx + ch] = Math.round(data[idx + ch] * (1 - edgeStrength));
-    }
-  }
-
-  // Step 4: Saturation boost
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    const r = data[idx], g = data[idx+1], b = data[idx+2];
-    const maxC = Math.max(r, g, b);
-    const minC = Math.min(r, g, b);
-    const l = (maxC + minC) / 2;
-    const s = maxC === minC ? 0 : (maxC - minC) / (1 - Math.abs(2*l/255 - 1));
-    const newS = Math.min(1, s * 1.5);
-    if (maxC !== minC) {
-      const factor = newS / (s || 0.01);
-      data[idx] = Math.min(255, Math.round(l + (r - l) * factor));
-      data[idx+1] = Math.min(255, Math.round(l + (g - l) * factor));
-      data[idx+2] = Math.min(255, Math.round(l + (b - l) * factor));
-    }
-  }
-
-  // Step 5: Light smoothing (3x3 box blur, 1 pass)
-  const blur = new Uint8ClampedArray(data.length);
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const idx = (y*w + x) * 4;
+      const ci = (y * w + x) * 4;
       for (let ch = 0; ch < 3; ch++) {
         let sum = 0;
-        for (let dy = -1; dy <= 1; dy++)
-          for (let dx = -1; dx <= 1; dx++)
-            sum += data[((y+dy)*w + x+dx) * 4 + ch];
-        blur[idx + ch] = Math.round(sum / 9);
+        let ki = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            sum += data[((y+dy) * w + (x+dx)) * 4 + ch] * kernel[ki++];
+          }
+        }
+        out[ci + ch] = Math.round(sum / 16);
       }
-      blur[idx+3] = 255;
     }
   }
-  // Write blur to edges only
-  for (let i = 0; i < w * h; i++) {
-    const idx = i * 4;
-    if (edgeData[idx] > 0) {
-      data[idx] = blur[idx];
-      data[idx+1] = blur[idx+1];
-      data[idx+2] = blur[idx+2];
-    }
-  }
+  return out;
+}
 
-  ctx.putImageData(src, 0, 0);
-  return canvas.toDataURL('image/jpeg', 0.85);
+// --- Unsharp Mask ---
+function usmSharpen(data, blurred, w, h, amount) {
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        const orig = data[i + ch];
+        const mask = orig - blurred[i + ch];
+        data[i + ch] = Math.min(255, Math.max(0, Math.round(orig + mask * amount)));
+      }
+    }
+  }
+}
+
+// --- Warm overlay ---
+function applyOverlay(data, w, h, or, og, ob, opacity) {
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      data[i] = Math.round(data[i] * (1 - opacity) + or * opacity);
+      data[i+1] = Math.round(data[i+1] * (1 - opacity) + og * opacity);
+      data[i+2] = Math.round(data[i+2] * (1 - opacity) + ob * opacity);
+    }
+  }
+}
+
+// --- Render with rounded corners and shadow ---
+function renderAnimeCard(srcCanvas, w, h) {
+  const pad = 14;
+  const radius = 14;
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = w + pad * 2;
+  finalCanvas.height = h + pad * 2;
+  const fctx = finalCanvas.getContext('2d');
+
+  // Soft shadow
+  fctx.shadowColor = 'rgba(60, 40, 20, 0.22)';
+  fctx.shadowBlur = 14;
+  fctx.shadowOffsetX = 0;
+  fctx.shadowOffsetY = 5;
+
+  // Rounded rect path
+  fctx.beginPath();
+  fctx.moveTo(pad + radius, pad);
+  fctx.arcTo(pad + w, pad, pad + w, pad + radius, radius);
+  fctx.arcTo(pad + w, pad + h, pad + w - radius, pad + h, radius);
+  fctx.arcTo(pad, pad + h, pad, pad + h - radius, radius);
+  fctx.arcTo(pad, pad, pad + radius, pad, radius);
+  fctx.closePath();
+  fctx.save();
+  fctx.clip();
+  fctx.drawImage(srcCanvas, pad, pad);
+  fctx.restore();
+
+  // Draw again without shadow for the clip (shadow only on outer shape)
+  // Actually we need shadow on the shape before clip. Let's redraw:
+  fctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+  fctx.save();
+  fctx.shadowColor = 'rgba(60, 40, 20, 0.22)';
+  fctx.shadowBlur = 14;
+  fctx.shadowOffsetX = 0;
+  fctx.shadowOffsetY = 5;
+  fctx.beginPath();
+  fctx.moveTo(pad + radius, pad);
+  fctx.arcTo(pad + w, pad, pad + w, pad + radius, radius);
+  fctx.arcTo(pad + w, pad + h, pad + w - radius, pad + h, radius);
+  fctx.arcTo(pad, pad + h, pad, pad + h - radius, radius);
+  fctx.arcTo(pad, pad, pad + radius, pad, radius);
+  fctx.closePath();
+  fctx.fillStyle = '#fff';
+  fctx.fill();
+  fctx.restore();
+
+  // Draw image clipped
+  fctx.save();
+  fctx.beginPath();
+  fctx.moveTo(pad + radius, pad);
+  fctx.arcTo(pad + w, pad, pad + w, pad + radius, radius);
+  fctx.arcTo(pad + w, pad + h, pad + w - radius, pad + h, radius);
+  fctx.arcTo(pad, pad + h, pad, pad + h - radius, radius);
+  fctx.arcTo(pad, pad, pad + radius, pad, radius);
+  fctx.closePath();
+  fctx.clip();
+  fctx.drawImage(srcCanvas, pad, pad);
+  fctx.restore();
+
+  return finalCanvas.toDataURL('image/jpeg', 0.88);
 }
 
 // ========== Toast ==========
@@ -1708,6 +1992,16 @@ function setupGlobalEvents() {
   document.getElementById('calToday').addEventListener('click', function() {
     currentMonth = new Date();
     selectedDay = null;
+    renderCalendar();
+  });
+
+  // Date picker quick jump
+  document.getElementById('calDatePicker').addEventListener('change', function() {
+    const val = this.value;
+    if (!val) return;
+    const parts = val.split('-');
+    currentMonth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+    selectedDay = val;
     renderCalendar();
   });
 
@@ -1943,7 +2237,7 @@ async function init() {
     refreshAllViews(); // Refresh with merged remote data
   }
 
-  console.log('🐱 猫咪管家 v1.0 初始化完成');
+  console.log('🐱 猫咪管家 v1.01 初始化完成');
 }
 
 document.addEventListener('DOMContentLoaded', init);
