@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>喵星人管理</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="喵星人">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#f0854b">
+<style>
+:root {
+  --orange: #f0854b; --orange-light: #fff0e8; --orange-dark: #e0753a;
+  --blue: #4a90d9; --blue-light: #eaf3fd;
+  --green: #27ae60; --green-light: #eafaf1;
+  --purple: #8e44ad; --purple-light: #f5edf9;
+  --bg: #f8f6f3; --card: #fff; --text: #2c1810;
+  --text-secondary: #8c7b6e; --text-muted: #b8a99a;
+  --border: #ece6df; --shadow: 0 2px 16px rgba(44,24,16,0.06);
+  --radius: 16px; --radius-sm: 10px; --radius-xs: 6px;
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tab-height: 64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+}
+.app { display:flex; flex-direction:column; height:100%; max-width:480px; margin:0 auto; position:relative; }
+.page { flex:1; overflow-y:auto; padding-bottom: calc(var(--tab-height) + var(--safe-bottom) + 20px); display:none; scroll-behavior:smooth; }
+.page.active { display:block; }
+
+/* ====== 底部导航 ====== */
+.tabbar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 0 8px; padding-bottom: var(--safe-bottom);
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  z-index: 100;
+}
+.tabbar-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 12px; cursor: pointer; transition: all .2s;
+  border-radius: var(--radius-xs); min-width: 56px;
+  -webkit-tap-highlight-color: transparent;
+}
+.tabbar-item svg { width: 24px; height: 24px; }
+.tabbar-item span { font-size: 10px; font-weight: 500; }
+.tabbar-item { color: var(--text-muted); }
+.tabbar-item.active { color: var(--orange); }
+.tabbar-item.active svg { filter: none; }
+
+/* ====== 首页 - 总览 ====== */
+.dashboard-header {
+  background: linear-gradient(135deg, var(--orange) 0%, #f59c6a 100%);
+  padding: 32px 24px 40px; border-radius: 0 0 32px 32px; color: #fff;
+}
+.greeting { font-size: 13px; opacity: 0.8; margin-bottom: 2px; }
+.dashboard-header h1 { font-size: 24px; font-weight: 700; }
+
+.cat-cards { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; margin-top: -24px; }
+.cat-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow);
+  display: flex; gap: 16px; align-items: center;
+  position: relative; overflow: hidden;
+}
+.cat-card .accent-bar {
+  position: absolute; left: 0; top: 0; width: 4px; height: 100%; border-radius: 4px 0 0 4px;
+}
+.cat-card.cat1 .accent-bar { background: var(--orange); }
+.cat-card.cat2 .accent-bar { background: var(--blue); }
+.cat-avatar {
+  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; color: #fff;
+}
+.cat-card.cat1 .cat-avatar { background: var(--orange); }
+.cat-card.cat2 .cat-avatar { background: var(--blue); }
+.cat-main { flex: 1; min-width: 0; }
+.cat-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.cat-name { font-size: 18px; font-weight: 700; }
+.cat-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; }
+.cat-edit-btn {
+  margin-left: auto; padding: 6px 14px; border-radius: 20px;
+  border: 1.5px solid var(--border); background: none;
+  font-size: 12px; color: var(--text-secondary); cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+}
+.cat-edit-btn:active { background: var(--bg); border-color: var(--orange); color: var(--orange); }
+
+/* 健康进度条 */
+.health-bars { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.health-bar-item { display: flex; align-items: center; gap: 10px; }
+.health-label { font-size: 11px; color: var(--text-secondary); width: 42px; text-align: right; flex-shrink: 0; }
+.health-track { flex: 1; height: 6px; background: #f0ece7; border-radius: 3px; overflow: hidden; }
+.health-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.health-fill.warn { background: var(--orange); }
+.health-fill.safe { background: var(--green); }
+.health-fill.near { background: var(--orange); opacity: 0.6; }
+.health-days { font-size: 11px; color: var(--text-muted); width: 56px; flex-shrink: 0; white-space: nowrap; }
+
+/* 提醒卡片 */
+.alert-card {
+  margin: 0 20px 16px; padding: 14px 18px; border-radius: var(--radius-sm);
+  background: #fff8e6; border: 1px solid #ffe4a0;
+  display: flex; align-items: center; gap: 10px; font-size: 13px; color: #8a6d14;
+}
+.alert-card .alert-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffc107; flex-shrink: 0; }
+
+/* 快速操作区 */
+.quick-actions { padding: 0 20px 16px; display: flex; gap: 10px; }
+.quick-btn {
+  flex: 1; padding: 14px; border-radius: var(--radius-sm);
+  border: none; font-size: 13px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: transform .15s; color: #fff;
+}
+.quick-btn:active { transform: scale(0.96); }
+.quick-btn.primary { background: var(--orange); }
+.quick-btn.secondary { background: var(--blue); }
+
+/* 统计条 */
+.stat-strip { display: flex; gap: 6px; padding: 0 20px 20px; }
+.stat-chip {
+  flex: 1; background: var(--card); border-radius: var(--radius-sm);
+  padding: 14px 8px; text-align: center; box-shadow: var(--shadow);
+}
+.stat-chip .chip-val { font-size: 22px; font-weight: 800; color: var(--orange); line-height: 1; }
+.stat-chip .chip-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+/* ====== 记录登记 ====== */
+.section-title { font-size: 16px; font-weight: 700; padding: 20px 20px 12px; }
+.form-card {
+  margin: 0 20px 16px; background: var(--card); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow);
+}
+.form-row { margin-bottom: 18px; }
+.form-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+
+.cat-toggle-row { display: flex; gap: 12px; }
+.cat-toggle {
+  flex: 1; padding: 14px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  text-align: center; cursor: pointer; transition: all .2s;
+  font-size: 14px; font-weight: 600; background: var(--card);
+}
+.cat-toggle.checked-cat1 { border-color: var(--orange); background: var(--orange-light); color: var(--orange-dark); }
+.cat-toggle.checked-cat2 { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+
+.type-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.type-chip {
+  padding: 10px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+  font-size: 13px; cursor: pointer; transition: all .2s; background: var(--card);
+}
+.type-chip.selected { border-color: var(--orange); background: var(--orange-light); color: var(--orange-dark); }
+
+.form-input, .form-textarea {
+  width: 100%; padding: 12px 16px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px; outline: none;
+  background: var(--card); font-family: inherit; transition: border .2s;
+}
+.form-input:focus, .form-textarea:focus { border-color: var(--orange); }
+.form-textarea { resize: none; height: 80px; }
+
+.submit-btn {
+  width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+  background: var(--orange); color: #fff; font-size: 16px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.submit-btn:active { background: var(--orange-dark); }
+
+/* ====== 历史记录 ====== */
+.filter-row {
+  display: flex; gap: 8px; padding: 16px 20px 0;
+  position: sticky; top: 0; background: var(--bg); z-index: 10;
+}
+.filter-chip {
+  padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+  font-size: 12px; cursor: pointer; background: var(--card); transition: all .2s; white-space: nowrap;
+}
+.filter-chip.active { border-color: var(--orange); background: var(--orange-light); color: var(--orange-dark); }
+.search-input {
+  flex: 1; padding: 10px 16px; border: 1.5px solid var(--border);
+  border-radius: 20px; font-size: 13px; outline: none; min-width: 0; background: var(--card);
+}
+.search-input:focus { border-color: var(--orange); }
+
+.timeline { padding: 16px 20px; }
+.timeline-item {
+  display: flex; gap: 14px; padding: 16px; margin-bottom: 10px;
+  background: var(--card); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  position: relative;
+}
+.timeline-dot {
+  width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0;
+}
+.timeline-content { flex: 1; min-width: 0; }
+.timeline-date { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.timeline-body { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.timeline-cat { font-size: 13px; font-weight: 600; }
+.timeline-type {
+  font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
+}
+.timeline-detail { font-size: 12px; color: var(--text-secondary); }
+.timeline-note { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.timeline-del {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  padding: 6px 12px; border-radius: 14px; background: #fee; color: #e74c3c;
+  font-size: 11px; border: none; cursor: pointer;
+}
+
+/* ====== 日历 ====== */
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+}
+.cal-month-label { font-size: 18px; font-weight: 700; }
+.cal-nav-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); cursor: pointer; font-size: 16px; display: flex;
+  align-items: center; justify-content: center; color: var(--text);
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; padding: 0 16px; }
+.cal-day-header { text-align: center; font-size: 11px; color: var(--text-muted); padding: 8px 0; font-weight: 600; }
+.cal-day {
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; border-radius: var(--radius-xs); cursor: pointer;
+  font-size: 14px; transition: all .15s; position: relative;
+}
+.cal-day.other-month { opacity: 0.3; }
+.cal-day.today { background: var(--orange-light); font-weight: 700; }
+.cal-day.selected { background: var(--orange); color: #fff; font-weight: 700; }
+.cal-day-dots { display: flex; gap: 3px; margin-top: 2px; }
+.cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+.cal-dot.d { background: var(--orange); } .cal-dot.v { background: var(--blue); }
+.cal-dot.c { background: var(--green); } .cal-dot.l { background: var(--purple); }
+
+.cal-detail { margin: 12px 16px; padding: 16px; background: var(--card); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.cal-detail-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--orange); }
+.cal-detail-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-detail-item:last-child { border-bottom: none; }
+
+/* ====== 猫咪档案编辑 ====== */
+.edit-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 200; display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.edit-modal.show { opacity: 1; pointer-events: all; }
+.edit-sheet {
+  background: var(--card); width: 100%; max-width: 480px; margin: 0 auto;
+  border-radius: 24px 24px 0 0; padding: 24px 20px;
+  padding-bottom: calc(24px + var(--safe-bottom));
+  max-height: 80vh; overflow-y: auto;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.edit-modal.show .edit-sheet { transform: translateY(0); }
+.edit-sheet h3 { font-size: 18px; margin-bottom: 20px; text-align: center; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 10px 24px; border-radius: 20px;
+  font-size: 13px; z-index: 300; opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* 空状态 */
+.empty-state {
+  text-align: center; padding: 60px 40px; color: var(--text-muted);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state p { font-size: 14px; }
+
+/* Calendar search */
+.cal-search { padding: 8px 20px; }
+.cal-search input {
+  width: 100%; padding: 10px 16px; border: 1.5px solid var(--border);
+  border-radius: 20px; font-size: 13px; outline: none; background: var(--card);
+}
+.cal-search input:focus { border-color: var(--orange); }
+.cal-jump { display: flex; gap: 8px; padding: 0 20px 8px; align-items: center; }
+.cal-jump select { padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 12px; background: var(--card); }
+.today-btn { padding: 6px 14px; border-radius: 14px; border: 1.5px solid var(--orange); color: var(--orange); background: none; font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ==================== 总览 ==================== -->
+<div class="page active" id="page-dashboard">
+  <div class="dashboard-header">
+    <div class="greeting" id="greeting"></div>
+    <h1>喵星人管理 <span id="sync-indicator" style="font-size:12px;font-weight:400;opacity:0.8;cursor:pointer" onclick="doFullSync()">☁️ 未配置</span></h1>
+  </div>
+
+  <div class="cat-cards" id="dashboard-cats"></div>
+  <div id="dashboard-alerts"></div>
+
+  <div class="quick-actions">
+    <button class="quick-btn primary" onclick="switchTab('record')">＋ 新增记录</button>
+    <button class="quick-btn secondary" onclick="switchTab('calendar')">📅 日历视图</button>
+  </div>
+
+  <div class="stat-strip" id="stat-strip"></div>
+</div>
+
+<!-- ==================== 记录登记 ==================== -->
+<div class="page" id="page-record">
+  <div class="section-title">新增记录</div>
+  <div class="form-card">
+    <div class="form-row">
+      <span class="form-label">猫咪（可多选）</span>
+      <div class="cat-toggle-row">
+        <div class="cat-toggle checked-cat1" id="rec-cat1-toggle" onclick="toggleRecCat(1)">猫咪一</div>
+        <div class="cat-toggle checked-cat2" id="rec-cat2-toggle" onclick="toggleRecCat(2)">猫咪二</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">记录类型</span>
+      <div class="type-selector" id="type-selector"></div>
+    </div>
+    <div class="form-row">
+      <span class="form-label">日期</span>
+      <input type="date" class="form-input" id="rec-date">
+    </div>
+    <div class="form-row" id="rec-extra-row" style="display:none"></div>
+    <div class="form-row">
+      <span class="form-label">备注（选填）</span>
+      <textarea class="form-textarea" id="rec-note" placeholder="补充说明..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="addRecord()">提交记录</button>
+  </div>
+</div>
+
+<!-- ==================== 历史记录 ==================== -->
+<div class="page" id="page-history">
+  <div class="filter-row">
+    <div class="filter-chip" data-filter="all" onclick="setHistoryCat('all', this)">全部</div>
+    <div class="filter-chip active" data-filter="1" id="hist-cat1-chip" onclick="setHistoryCat('1', this)">猫咪一</div>
+    <div class="filter-chip" data-filter="2" id="hist-cat2-chip" onclick="setHistoryCat('2', this)">猫咪二</div>
+  </div>
+  <div class="filter-row" style="padding-top:4px;">
+    <div class="filter-chip active" data-filter="all" onclick="setHistoryType('all', this)">全部类型</div>
+    <div class="filter-chip" data-filter="deworm" onclick="setHistoryType('deworm', this)">驱虫</div>
+    <div class="filter-chip" data-filter="vaccine" onclick="setHistoryType('vaccine', this)">疫苗</div>
+    <div class="filter-chip" data-filter="checkup" onclick="setHistoryType('checkup', this)">体检</div>
+    <div class="filter-chip" data-filter="litter" onclick="setHistoryType('litter', this)">猫砂</div>
+  </div>
+  <div class="filter-row" style="padding-top:4px;">
+    <input class="search-input" id="hist-search" placeholder="搜索关键词..." oninput="renderHistory()">
+  </div>
+  <div class="timeline" id="history-list"></div>
+</div>
+
+<!-- ==================== 日历视图 ==================== -->
+<div class="page" id="page-calendar">
+  <div class="cal-search">
+    <input type="text" id="cal-search-input" placeholder="搜索记录..." oninput="calSearch()">
+  </div>
+  <div class="cal-jump">
+    <select id="cal-year-sel" onchange="calJump()"></select>
+    <select id="cal-month-sel" onchange="calJump()">
+      <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+      <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+      <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+      <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+    </select>
+    <button class="today-btn" onclick="calGoToday()">今天</button>
+  </div>
+  <div class="cal-header">
+    <div class="cal-nav-btn" onclick="calPrevMonth()">◀</div>
+    <div class="cal-month-label" id="cal-month-label"></div>
+    <div class="cal-nav-btn" onclick="calNextMonth()">▶</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="cal-detail" id="cal-detail-panel" style="display:none;">
+    <div class="cal-detail-title" id="cal-detail-title"></div>
+    <div id="cal-detail-list"></div>
+  </div>
+</div>
+
+<!-- ==================== 存档编辑弹窗 ==================== -->
+<div class="edit-modal" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-sheet" id="edit-sheet"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ==================== 底部导航 ==================== -->
+<div class="tabbar">
+  <div class="tabbar-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>总览</span>
+  </div>
+  <div class="tabbar-item" data-tab="record" onclick="switchTab('record')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span>记录</span>
+  </div>
+  <div class="tabbar-item" data-tab="calendar" onclick="switchTab('calendar')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>日历</span>
+  </div>
+  <div class="tabbar-item" data-tab="history" onclick="switchTab('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+    <span>历史</span>
+  </div>
+</div>
+</div>
+
+<script>
+// ====== Data ======
+const STORAGE_KEY = 'cat_manager_data_v3';
+const SUPABASE_URL = 'https://ctgauwdvffdhdkmtpnnr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Z2F1d2R2ZmZkaGRrbXRwbm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODQyMzMsImV4cCI6MjA5NjU2MDIzM30.A0PItTHvyzd2ZEdutWoS1gkekn-6BXuG0wPSjmAiEOg';
+
+function sbHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+}
+
+function getDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{'1':{},'2':{}}, records:[] }; } catch(e) { return { cats:{'1':{},'2':{}}, records:[] }; } }
+function saveDB(db) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  syncToCloud(db).catch(()=>{});
+}
+async function syncToCloud(db) {
+  // Upsert cats
+  const catsArray = Object.entries(db.cats).map(([id, cat]) => ({ id, name:cat.name||'', breed:cat.breed||'', birth:cat.birth||'', weight:cat.weight||'', avatar:cat.avatar||'' }));
+  await fetch(SUPABASE_URL + '/rest/v1/cats', {
+    method: 'POST',
+    headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify(catsArray)
+  });
+  // Delete all records then re-insert (avoids complex upsert with auto-increment ID)
+  await fetch(SUPABASE_URL + '/rest/v1/records?select=id', { method: 'DELETE', headers: sbHeaders() });
+  if (db.records.length > 0) {
+    const recArray = db.records.map(r => ({ cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' }));
+    await fetch(SUPABASE_URL + '/rest/v1/records', {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(recArray)
+    });
+  }
+}
+async function pullFromCloud() {
+  try {
+    const [catsRes, recsRes] = await Promise.all([
+      fetch(SUPABASE_URL + '/rest/v1/cats?select=*', { headers: sbHeaders() }),
+      fetch(SUPABASE_URL + '/rest/v1/records?select=*', { headers: sbHeaders() })
+    ]);
+    if (!catsRes.ok || !recsRes.ok) return null;
+    const catsList = await catsRes.json();
+    const recordsList = await recsRes.json();
+    const cats = {};
+    for (const c of catsList) { const { id, ...rest } = c; cats[id] = rest; }
+    if (!cats['1']) cats['1'] = {};
+    if (!cats['2']) cats['2'] = {};
+    const records = recordsList.map(r => ({ id: 'r'+r.id, cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' })).sort((a,b) => new Date(b.date)-new Date(a.date));
+    return { cats, records };
+  } catch (e) { return null; }
+}
+let syncStatus='idle';
+
+async function doFullSync() {
+  syncStatus='syncing'; updateSyncUI();
+  try {
+    const cloud = await pullFromCloud();
+    if (!cloud) { syncStatus='error'; showToast('同步失败，请检查网络'); updateSyncUI(); setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000); return; }
+    const local = getDB();
+    const localRecIds = new Set(local.records.map(r => r.id));
+    const newRecs = cloud.records.filter(r => !localRecIds.has(r.id));
+    const merged = [...local.records, ...newRecs].sort((a,b) => new Date(b.date)-new Date(a.date));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ cats: cloud.cats, records: merged }));
+    syncStatus='done';
+    showToast(newRecs.length > 0 ? '已同步 ' + newRecs.length + ' 条新记录' : '数据已是最新');
+  } catch(e) { syncStatus='error'; showToast('同步失败，请检查网络'); }
+  updateSyncUI(); setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000);
+}
+function updateSyncUI() {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const map = { idle: '☁️ 已就绪', syncing: '🔄 同步中…', done: '✅ 已同步', error: '❌ 同步失败' };
+  el.textContent = map[syncStatus] || '';
+}
+function getCatName(n) { const db=getDB(); return db.cats[String(n)]?.name || ('猫咪'+n); }
+function calcAge(birthStr) {
+  if (!birthStr) return '';
+  const b = new Date(birthStr), n = new Date();
+  let y = n.getFullYear()-b.getFullYear();
+  const m = n.getMonth()-b.getMonth();
+  if (m<0||(m===0&&n.getDate()<b.getDate())) y--;
+  if (y<0) return '未出生';
+  const mo = ((n.getFullYear()-b.getFullYear())*12+n.getMonth()-b.getMonth()+(n.getDate()>=b.getDate()?0:-1))%12;
+  return y===0?mo+'个月':y+'岁'+(mo>0?mo+'个月':'');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ====== Tab ======
+let currentTab = 'dashboard';
+function switchTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tabbar-item[data-tab="'+name+'"]').classList.add('active');
+  if (name==='dashboard') renderDashboard();
+  if (name==='history') renderHistory();
+  if (name==='calendar') renderCalendar();
+  if (name==='record') { updateRecCatLabels(); updateRecDate(); }
+}
+
+// ====== Dashboard ======
+function renderDashboard() {
+  const db = getDB(); const now = new Date();
+  // greeting
+  const h = now.getHours();
+  document.getElementById('greeting').textContent = h<12?'早上好 ☀️':h<18?'下午好 🌤':'晚上好 🌙';
+
+  // cats
+  let html = '';
+  for (let n=1; n<=2; n++) {
+    const c = db.cats[String(n)]||{}, name = c.name||('猫咪'+n);
+    const initial = name.charAt(0);
+    html += '<div class="cat-card cat'+n+'"><div class="accent-bar"></div>';
+    html += '<div class="cat-avatar">'+initial+'</div>';
+    html += '<div class="cat-main">';
+    html += '<div class="cat-name-row"><span class="cat-name">'+name+'</span>';
+    html += '<span style="font-size:12px;color:var(--text-muted)">'+(c.breed||'')+'</span>';
+    html += '<button class="cat-edit-btn" onclick="openEditModal('+n+')">编辑档案</button></div>';
+    html += '<div class="cat-meta">';
+    if (c.birth) html += '<span>'+calcAge(c.birth)+'</span>';
+    if (c.weight) html += '<span>'+c.weight+'kg</span>';
+    if (c.gender) html += '<span>'+c.gender+'</span>';
+    html += '</div>';
+
+    // health bars
+    const catRecs = db.records.filter(r=>r.cat===String(n));
+    const latest={};
+    catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
+    const bars = [
+      { type:'deworm', label:'驱虫', max:90, color:'orange' },
+      { type:'vaccine', label:'疫苗', max:365, color:'blue' },
+      { type:'checkup', label:'体检', max:365, color:'green' },
+      { type:'litter', label:'猫砂', max:30, color:'purple' },
+    ];
+    html += '<div class="health-bars">';
+    bars.forEach(b=>{
+      const lr = latest[b.type];
+      const days = lr ? Math.floor((now-new Date(lr.date))/86400000) : 999;
+      const pct = Math.min(100, Math.round(days/b.max*100));
+      const cls = pct>=100?'warn':pct>=75?'near':'safe';
+      html += '<div class="health-bar-item"><span class="health-label">'+b.label+'</span>';
+      html += '<div class="health-track"><div class="health-fill '+cls+'" style="width:'+pct+'%"></div></div>';
+      html += '<span class="health-days">'+days+'天</span></div>';
+    });
+    html += '</div></div></div>';
+  }
+  document.getElementById('dashboard-cats').innerHTML = html;
+
+  // alerts
+  const alerts = [];
+  for (let n=1;n<=2;n++) {
+    const catRecs=db.records.filter(r=>r.cat===String(n)),latest={};
+    catRecs.forEach(r=>{ if(!latest[r.type]||new Date(r.date)>new Date(latest[r.type].date)) latest[r.type]=r; });
+    const types={deworm:'驱虫',vaccine:'疫苗',checkup:'体检',litter:'猫砂'}, th={deworm:90,vaccine:365,checkup:365,litter:30};
+    for (const [t,r] of Object.entries(latest)) {
+      const days=Math.floor((now-new Date(r.date))/86400000);
+      if (days>th[t]) alerts.push(getCatName(String(n))+'的'+types[t]+'已超期 '+days+' 天（上次：'+r.date+'）');
+    }
+  }
+  const alertDiv = document.getElementById('dashboard-alerts');
+  if (alerts.length>0) {
+    alertDiv.innerHTML = alerts.map(a=>'<div class="alert-card"><div class="alert-dot"></div>'+a+'</div>').join('');
+  } else {
+    alertDiv.innerHTML = '';
+  }
+
+  // stats
+  const counts = { deworm:0, vaccine:0, checkup:0, litter:0 };
+  db.records.forEach(r=>{ if(counts[r.type]!==undefined) counts[r.type]++; });
+  document.getElementById('stat-strip').innerHTML =
+    '<div class="stat-chip"><div class="chip-val">'+db.records.length+'</div><div class="chip-label">总记录</div></div>'+
+    '<div class="stat-chip"><div class="chip-val">'+counts.deworm+'</div><div class="chip-label">驱虫</div></div>'+
+    '<div class="stat-chip"><div class="chip-val">'+counts.vaccine+'</div><div class="chip-label">疫苗</div></div>'+
+    '<div class="stat-chip"><div class="chip-val">'+counts.checkup+'</div><div class="chip-label">体检</div></div>'+
+    '<div class="stat-chip"><div class="chip-val">'+counts.litter+'</div><div class="chip-label">猫砂</div></div>';
+}
+
+// ====== Edit Modal ======
+function openEditModal(n) {
+  const db=getDB(),c=db.cats[String(n)]||{};
+  document.getElementById('edit-sheet').innerHTML = `
+    <h3>🐱 ${getCatName(String(n))} 档案</h3>
+    <div class="form-row"><span class="form-label">名字</span><input class="form-input" id="edit-name" value="${c.name||''}" placeholder="请输入名字"></div>
+    <div class="form-row"><span class="form-label">品种</span><input class="form-input" id="edit-breed" value="${c.breed||''}" placeholder="如：英短"></div>
+    <div class="form-row"><span class="form-label">性别</span>
+      <select class="form-input" id="edit-gender"><option ${c.gender==='母'?'selected':''}>公</option><option ${c.gender==='母'?'selected':''}>母</option></select></div>
+    <div class="form-row"><span class="form-label">出生日期</span><input type="date" class="form-input" id="edit-birth" value="${c.birth||''}"></div>
+    <div class="form-row"><span class="form-label">体重（kg）</span><input type="number" class="form-input" id="edit-weight" value="${c.weight||''}" step="0.1" placeholder="如 4.5"></div>
+    <div class="form-row"><span class="form-label">毛色</span><input class="form-input" id="edit-color" value="${c.color||''}" placeholder="如：银渐层"></div>
+    <div class="form-row"><span class="form-label">备注</span><textarea class="form-textarea" id="edit-note" placeholder="性格、习惯等">${c.note||''}</textarea></div>
+    <button class="submit-btn" onclick="saveEditModal(${n})" style="margin-top:12px">保存</button>
+  `;
+  document.getElementById('edit-modal').classList.add('show');
+}
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('show'); }
+function saveEditModal(n) {
+  const db = getDB();
+  db.cats[String(n)] = {
+    name: document.getElementById('edit-name').value.trim(),
+    breed: document.getElementById('edit-breed').value.trim(),
+    gender: document.getElementById('edit-gender').value,
+    birth: document.getElementById('edit-birth').value,
+    weight: document.getElementById('edit-weight').value,
+    color: document.getElementById('edit-color').value.trim(),
+    note: document.getElementById('edit-note').value.trim()
+  };
+  saveDB(db); closeEditModal(); renderDashboard(); updateRecCatLabels();
+  renderHistory(); showToast('档案已保存');
+}
+
+// ====== Record ======
+let recCats = {1:true,2:true}, recType='deworm';
+const typeConfig = [
+  { key:'deworm', label:'驱虫', icon:'💊', extra:'subtype', extraLabel:'驱虫类型', extraOpts:['内驱','外驱','内外同驱'] },
+  { key:'vaccine', label:'疫苗', icon:'💉', extra:'vacType', extraLabel:'疫苗类型', extraOpts:['猫三联','狂犬','猫三联+狂犬','其他'] },
+  { key:'checkup', label:'体检', icon:'🩺', extra:'item', extraLabel:'体检项目', extraOpts:[] },
+  { key:'litter', label:'猫砂', icon:'🧹', extra:'', extraLabel:'', extraOpts:[] },
+];
+
+function updateRecCatLabels() {
+  document.getElementById('rec-cat1-toggle').textContent = getCatName('1');
+  document.getElementById('rec-cat2-toggle').textContent = getCatName('2');
+  document.getElementById('hist-cat1-chip').textContent = getCatName('1');
+  document.getElementById('hist-cat2-chip').textContent = getCatName('2');
+}
+function toggleRecCat(n) {
+  recCats[n] = !recCats[n];
+  const el = document.getElementById('rec-cat'+n+'-toggle');
+  el.classList.toggle('checked-cat'+n);
+}
+function updateRecDate() {
+  document.getElementById('rec-date').value = new Date().toISOString().slice(0,10);
+}
+
+function initRecordPage() {
+  // type selector
+  let html = '';
+  typeConfig.forEach((tc,i)=>{
+    html += '<div class="type-chip'+(i===0?' selected':'')+'" data-key="'+tc.key+'" onclick="selectRecType(\''+tc.key+'\',this)">'+tc.icon+' '+tc.label+'</div>';
+  });
+  document.getElementById('type-selector').innerHTML = html;
+  updateRecExtra();
+}
+function selectRecType(key, el) {
+  recType = key;
+  document.querySelectorAll('#type-selector .type-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  updateRecExtra();
+}
+function updateRecExtra() {
+  const tc = typeConfig.find(t=>t.key===recType);
+  const row = document.getElementById('rec-extra-row');
+  if (tc.extra) {
+    if (tc.extra==='item') {
+      row.innerHTML = '<span class="form-label">'+tc.extraLabel+'</span><input class="form-input" id="rec-extra-val" placeholder="如：血常规、B超">';
+    } else {
+      row.innerHTML = '<span class="form-label">'+tc.extraLabel+'</span><select class="form-input" id="rec-extra-val">'+tc.extraOpts.map(o=>'<option>'+o+'</option>').join('')+'</select>';
+    }
+    row.style.display = '';
+  } else {
+    row.style.display = 'none';
+  }
+}
+function addRecord() {
+  if (!recCats[1] && !recCats[2]) { showToast('请至少选择一只猫咪'); return; }
+  const date = document.getElementById('rec-date').value;
+  const tc = typeConfig.find(t=>t.key===recType);
+  let extraVal = '';
+  if (tc.extra) {
+    const el = document.getElementById('rec-extra-val');
+    extraVal = el.tagName==='SELECT' ? el.value : el.value.trim();
+    if (tc.extra==='item' && !extraVal) { showToast('请填写体检项目'); return; }
+  }
+  const note = document.getElementById('rec-note').value.trim();
+  const db = getDB();
+  let count = 0;
+  const makeRec = (catId, off) => ({
+    id: Date.now()+off, cat: catId, type: recType, date,
+    subtype: recType==='deworm'?extraVal:'',
+    vacType: recType==='vaccine'?extraVal:'',
+    item: recType==='checkup'?extraVal:'',
+    note
+  });
+  if (recCats[1]) { db.records.push(makeRec('1',0)); count++; }
+  if (recCats[2]) { db.records.push(makeRec('2',1)); count++; }
+  db.records.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  saveDB(db);
+  document.getElementById('rec-note').value = '';
+  if (tc.extra==='item') document.getElementById('rec-extra-val').value = '';
+  showToast('已添加 '+count+' 条记录');
+  renderDashboard();
+}
+
+// ====== History ======
+let histCat='all', histType='all';
+function setHistoryCat(v, el) {
+  histCat=v;
+  document.querySelectorAll('#page-history .filter-chip').forEach(c=>{
+    if (c.dataset.filter===v || (v==='all' && c.dataset.filter==='all' && c.parentElement===document.querySelector('#page-history .filter-row'))) {
+      // just handle first filter row
+    }
+  });
+  document.querySelectorAll('#page-history .filter-row:first-child .filter-chip').forEach(c=>c.classList.toggle('active', c.dataset.filter===v));
+  renderHistory();
+}
+function setHistoryType(v, el) {
+  histType=v;
+  document.querySelectorAll('#page-history .filter-row:nth-child(2) .filter-chip').forEach(c=>c.classList.toggle('active', c.dataset.filter===v));
+  renderHistory();
+}
+function renderHistory() {
+  const db=getDB(), kw=(document.getElementById('hist-search')?.value||'').trim().toLowerCase();
+  let records = db.records.filter(r=>
+    (histCat==='all'||r.cat===histCat) && (histType==='all'||r.type===histType)
+  );
+  if (kw) { records=records.filter(r=>{
+    const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+    return txt.includes(kw);
+  });}
+  const typeNames={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂'};
+  const typeColors={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)'};
+  const typeClass={deworm:'background:#fff0e8;color:#d46b26',vaccine:'background:#eaf3fd;color:#2a6bb5',checkup:'background:#eafaf1;color:#1e7a3a',litter:'background:#f5edf9;color:#6b3fa0'};
+  const catColors={1:'#d46b26',2:'#2a6bb5'};
+  if (records.length===0) {
+    document.getElementById('history-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无记录</p></div>';
+    return;
+  }
+  let html = '';
+  records.forEach(r=>{
+    let detail='';
+    if (r.type==='deworm') detail=r.subtype;
+    else if (r.type==='vaccine') detail=r.vacType;
+    else if (r.type==='checkup') detail=r.item;
+    html += '<div class="timeline-item">';
+    html += '<div class="timeline-dot" style="background:'+(typeColors[r.type]||'#999')+'"></div>';
+    html += '<div class="timeline-content">';
+    html += '<div class="timeline-date">'+r.date+'</div>';
+    html += '<div class="timeline-body">';
+    html += '<span class="timeline-cat" style="color:'+(catColors[r.cat]||'#333')+'">'+getCatName(r.cat)+'</span>';
+    html += '<span class="timeline-type" style="'+typeClass[r.type]+'">'+typeNames[r.type]+'</span>';
+    if (detail) html += '<span class="timeline-detail">'+detail+'</span>';
+    html += '</div>';
+    if (r.note) html += '<div class="timeline-note">'+r.note+'</div>';
+    html += '</div>';
+    html += '<button class="timeline-del" onclick="deleteRecord('+r.id+')">删除</button>';
+    html += '</div>';
+  });
+  document.getElementById('history-list').innerHTML = html;
+}
+function deleteRecord(id) {
+  if (!confirm('确定删除这条记录吗？')) return;
+  const db=getDB();
+  db.records = db.records.filter(r=>r.id!==id);
+  saveDB(db); renderHistory(); renderDashboard(); renderCalendar();
+  showToast('已删除');
+}
+
+// ====== Calendar ======
+let calYear, calMonth, calSelected='';
+function initCal() {
+  const now=new Date();
+  calYear=now.getFullYear(); calMonth=now.getMonth();
+  buildYearList();
+}
+function buildYearList() {
+  const db=getDB(),now=new Date();
+  let min=now.getFullYear()-5,max=now.getFullYear()+1;
+  db.records.forEach(r=>{const y=parseInt(r.date.slice(0,4));if(y<min)min=y;if(y>max)max=y;});
+  const sel=document.getElementById('cal-year-sel');
+  sel.innerHTML='';
+  for (let y=max;y>=min;y--) sel.innerHTML+='<option value="'+y+'"'+(y===calYear?' selected':'')+'>'+y+'年</option>';
+  document.getElementById('cal-month-sel').value = calMonth;
+}
+function renderCalendar() {
+  document.getElementById('cal-month-label').textContent = calYear+'年 '+(calMonth+1)+'月';
+  document.getElementById('cal-year-sel').value = calYear;
+  document.getElementById('cal-month-sel').value = calMonth;
+  const db=getDB();
+  const dateMap={};
+  db.records.forEach(r=>{
+    if(!dateMap[r.date]) dateMap[r.date]={};
+    const k=r.type+'_'+r.cat;
+    if(!dateMap[r.date][k]) dateMap[r.date][k]=r.type;
+  });
+
+  const kw=(document.getElementById('cal-search-input')?.value||'').trim().toLowerCase();
+  let searchDates=new Set();
+  if(kw){
+    db.records.forEach(r=>{
+      const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+      if(txt.includes(kw)) searchDates.add(r.date);
+    });
+  }
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date().toISOString().slice(0,10);
+  const headers=['日','一','二','三','四','五','六'];
+  let html = headers.map(h=>'<div class="cal-day-header">'+h+'</div>').join('');
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function ym(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
+
+  const pm=calMonth===0?12:calMonth, py=calMonth===0?calYear-1:calYear;
+  const dim= new Date(py,pm,0).getDate();
+  for(let i=firstDay-1;i>=0;i--){
+    const d=dim-i, ds=ym(py,pm,d);
+    html+='<div class="cal-day other-month" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div>';
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=ym(calYear,calMonth+1,d);
+    let cls='cal-day';
+    if(ds===today) cls+=' today';
+    if(ds===calSelected) cls+=' selected';
+    const dm=dateMap[ds];
+    let dots='';
+    if(dm){
+      const short={deworm:'d',vaccine:'v',checkup:'c',litter:'l'};
+      Object.values(dm).forEach(t=>dots+='<div class="cal-dot '+short[t]+'"></div>');
+    }
+    html+='<div class="'+cls+'" onclick="calSelect(\''+ds+'\')"><span>'+(searchDates.has(ds)?'·':'')+d+'</span><div class="cal-day-dots">'+dots+'</div></div>';
+  }
+  const total=firstDay+daysInMonth, rem=total%7===0?0:7-(total%7);
+  const nm=calMonth===11?1:calMonth+2, ny=calMonth===11?calYear+1:calYear;
+  for(let d=1;d<=rem;d++){
+    const ds=ym(ny,nm,d);
+    html+='<div class="cal-day other-month" onclick="calSelect(\''+ds+'\')"><span>'+d+'</span></div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+  if (calSelected) calShowDetail(calSelected);
+}
+function calSelect(ds) { calSelected=ds; calShowDetail(ds); renderCalendar(); }
+function calShowDetail(ds) {
+  const db=getDB();
+  let records=db.records.filter(r=>r.date===ds);
+  const kw=(document.getElementById('cal-search-input')?.value||'').trim().toLowerCase();
+  if(kw){records=records.filter(r=>{
+    const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();
+    return txt.includes(kw);
+  });}
+  const panel=document.getElementById('cal-detail-panel');
+  if(records.length===0){panel.style.display='none';return;}
+  panel.style.display='';
+  document.getElementById('cal-detail-title').textContent=ds+' 共'+records.length+'条';
+  const tn={deworm:'驱虫',vaccine:'疫苗接种',checkup:'体检',litter:'猫砂'};
+  const tc={deworm:'var(--orange)',vaccine:'var(--blue)',checkup:'var(--green)',litter:'var(--purple)'};
+  document.getElementById('cal-detail-list').innerHTML=records.map(r=>{
+    let d='';
+    if(r.type==='deworm')d=r.subtype;else if(r.type==='vaccine')d=r.vacType;else if(r.type==='checkup')d=r.item;
+    return '<div class="cal-detail-item"><span class="timeline-dot" style="background:'+tc[r.type]+';margin-top:0"></span><span class="timeline-cat">'+getCatName(r.cat)+'</span><span class="timeline-type" style="background:#fff0e8;color:#d46b26">'+tn[r.type]+'</span>'+d+' '+(r.note||'')+'</div>';
+  }).join('');
+}
+function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}calSelected='';renderCalendar();}
+function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}calSelected='';renderCalendar();}
+function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calSelected=n.toISOString().slice(0,10);buildYearList();renderCalendar();}
+function calJump(){calYear=parseInt(document.getElementById('cal-year-sel').value);calMonth=parseInt(document.getElementById('cal-month-sel').value);calSelected='';renderCalendar();}
+function calSearch(){const kw=document.getElementById('cal-search-input').value.trim().toLowerCase();if(kw){const db=getDB();const m=db.records.filter(r=>{const txt=(getCatName(r.cat)+' 驱虫 疫苗 体检 猫砂 '+(r.subtype||r.vacType||r.item||'')+' '+(r.note||'')+' '+r.date).toLowerCase();return txt.includes(kw);});if(m.length>0){m.sort((a,b)=>new Date(a.date)-new Date(b.date));const d=new Date(m[0].date);calYear=d.getFullYear();calMonth=d.getMonth();calSelected=m[0].date;buildYearList();}}renderCalendar();}
+
+// ====== Export / Import ======
+function exportData() {
+  const data = JSON.stringify(getDB(), null, 2);
+  navigator.clipboard.writeText(data).then(()=>showToast('数据已复制到剪贴板'));
+}
+function importData() {
+  const txt = prompt('请粘贴之前导出的 JSON 数据：');
+  if (!txt) return;
+  try {
+    const data = JSON.parse(txt);
+    if (!data.cats || !data.records) throw new Error();
+    if (confirm('导入将覆盖现有数据，确定继续？')) {
+      saveDB(data); renderDashboard(); renderHistory(); renderCalendar();
+      updateRecCatLabels(); showToast('导入成功');
+    }
+  } catch(e) { showToast('数据格式错误'); }
+}
+function clearAll() {
+  if (confirm('⚠️ 确定清空全部数据吗？\n建议先导出备份。此操作不可恢复。')) {
+    if (confirm('再次确认：清空所有数据？')) {
+      saveDB({ cats:{'1':{},'2':{}}, records:[] });
+      renderDashboard(); renderHistory(); renderCalendar(); updateRecCatLabels();
+      showToast('已清空');
+    }
+  }
+}
+
+// ====== Init ======
+document.addEventListener('DOMContentLoaded', async ()=>{
+  initRecordPage();
+  updateRecCatLabels();
+  updateRecDate();
+  initCal();
+
+  // 从 Supabase 拉取最新数据
+  syncStatus='syncing'; updateSyncUI();
+  try {
+    const cloud = await pullFromCloud();
+    if (cloud) {
+      const local=getDB();
+      const localIds=new Set(local.records.map(r=>r.id));
+      const merged=cloud.records.filter(r=>!localIds.has(r.id));
+      const all=[...local.records,...merged].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      localStorage.setItem(STORAGE_KEY,JSON.stringify({cats:cloud.cats,records:all}));
+      syncStatus='done';
+    } else {
+      syncStatus='idle';
+    }
+  } catch(e) { syncStatus='idle'; }
+  updateSyncUI();
+  renderDashboard();
+  renderCalendar();
+  renderHistory();
+
+  // 3秒后恢复idle
+  if (syncStatus==='done') setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000);
+});
+
+// PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

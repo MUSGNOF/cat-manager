@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .debug-btn { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .debug-output { margin-top: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>猫咪管理系统调试</h1>
+    
+    <div class="debug-section">
+        <h3>1. 检查 JavaScript 错误</h3>
+        <button class="debug-btn" onclick="checkJSErrors()">检查 JS 错误</button>
+        <div id="js-error-output" class="debug-output"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>2. 检查 deleteRecord 函数</h3>
+        <button class="debug-btn" onclick="checkDeleteFunction()">检查删除函数</button>
+        <div id="delete-check-output" class="debug-output"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>3. 检查日历渲染</h3>
+        <button class="debug-btn" onclick="checkCalendarRender()">检查日历</button>
+        <div id="calendar-check-output" class="debug-output"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>4. 检查快速添加功能</h3>
+        <button class="debug-btn" onclick="checkQuickAdd()">检查快速添加</button>
+        <div id="quickadd-check-output" class="debug-output"></div>
+    </div>
+    
+    <script>
+        // 从主文件复制关键函数
+        const STORAGE_KEY = 'cat_manager_data_v3';
+        
+        function getDB() { 
+            try { 
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{}, records:[] }; 
+            } catch(e) { 
+                return { cats:{}, records:[] }; 
+            } 
+        }
+        
+        function saveDB(db) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
+        
+        function deleteRecord(id) {
+            const output = document.getElementById('delete-check-output');
+            output.innerHTML = '正在执行 deleteRecord(' + id + ')...<br>';
+            
+            if (!confirm('确定删除这条记录吗？')) {
+                output.innerHTML += '用户取消了删除<br>';
+                return false;
+            }
+            
+            const db = getDB();
+            output.innerHTML += '删除前记录数: ' + db.records.length + '<br>';
+            
+            db.records = db.records.filter(r => r.id !== id);
+            output.innerHTML += '删除后记录数: ' + db.records.length + '<br>';
+            
+            saveDB(db);
+            output.innerHTML += '数据已保存到 localStorage<br>';
+            
+            // 检查是否真的删除了
+            const afterDelete = getDB();
+            const found = afterDelete.records.find(r => r.id === id);
+            if (found) {
+                output.innerHTML += '<span style="color:red">❌ 删除失败，记录仍然存在</span><br>';
+            } else {
+                output.innerHTML += '<span style="color:green">✅ 删除成功</span><br>';
+            }
+            
+            return true;
+        }
+        
+        function checkJSErrors() {
+            const output = document.getElementById('js-error-output');
+            output.innerHTML = '检查中...<br>';
+            
+            // 检查关键函数是否存在
+            const functions = ['deleteRecord', 'getDB', 'saveDB', 'quickAddRecord', 'renderCalendar'];
+            let allExist = true;
+            
+            functions.forEach(func => {
+                if (typeof window[func] === 'function') {
+                    output.innerHTML += '✅ ' + func + ' 函数存在<br>';
+                } else {
+                    output.innerHTML += '❌ ' + func + ' 函数不存在<br>';
+                    allExist = false;
+                }
+            });
+            
+            if (allExist) {
+                output.innerHTML += '<br><span style="color:green">✅ 所有关键函数都存在</span>';
+            } else {
+                output.innerHTML += '<br><span style="color:red">❌ 缺少关键函数</span>';
+            }
+        }
+        
+        function checkDeleteFunction() {
+            const output = document.getElementById('delete-check-output');
+            output.innerHTML = '测试删除功能...<br>';
+            
+            // 创建测试数据
+            const testData = {
+                cats: { '1': { name: '测试猫咪' } },
+                records: [
+                    { id: 9999, cat_id: '1', type: 'deworm', date: '2024-06-09', note: '测试记录' },
+                    { id: 10000, cat_id: '1', type: 'vaccine', date: '2024-06-08', note: '另一个测试' }
+                ]
+            };
+            
+            // 保存测试数据
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(testData));
+            output.innerHTML += '测试数据已创建: ' + testData.records.length + ' 条记录<br>';
+            
+            // 执行删除
+            const result = deleteRecord(9999);
+            
+            if (result) {
+                const finalData = getDB();
+                output.innerHTML += '最终记录数: ' + finalData.records.length + '<br>';
+                
+                if (finalData.records.length === 1) {
+                    output.innerHTML += '<span style="color:green">✅ 删除功能正常</span>';
+                } else {
+                    output.innerHTML += '<span style="color:red">❌ 删除功能异常</span>';
+                }
+            }
+        }
+        
+        function checkCalendarRender() {
+            const output = document.getElementById('calendar-check-output');
+            output.innerHTML = '检查日历渲染...<br>';
+            
+            // 检查日历元素是否存在
+            const elements = ['cal-grid', 'cal-detail-panel', 'cal-detail-title', 'cal-detail-list'];
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    output.innerHTML += '✅ #' + id + ' 元素存在<br>';
+                } else {
+                    output.innerHTML += '❌ #' + id + ' 元素不存在<br>';
+                }
+            });
+            
+            // 检查日历样式
+            const styleCheck = document.createElement('div');
+            styleCheck.className = 'cal-day';
+            styleCheck.innerHTML = '<div class="cal-day-content"><span>1</span></div><button class="cal-add-btn">+</button>';
+            document.body.appendChild(styleCheck);
+            
+            setTimeout(() => {
+                const btn = styleCheck.querySelector('.cal-add-btn');
+                if (btn) {
+                    const styles = window.getComputedStyle(btn);
+                    output.innerHTML += '<br>加号按钮样式检查:<br>';
+                    output.innerHTML += '- 背景色: ' + styles.backgroundColor + '<br>';
+                    output.innerHTML += '- 宽度: ' + styles.width + '<br>';
+                    output.innerHTML += '- 不透明度: ' + styles.opacity + '<br>';
+                    
+                    if (styles.backgroundColor.includes('rgb(255, 107, 0)') || styles.backgroundColor.includes('orange')) {
+                        output.innerHTML += '<span style="color:green">✅ 加号按钮样式正确</span>';
+                    } else {
+                        output.innerHTML += '<span style="color:orange">⚠️ 加号按钮颜色可能不正确</span>';
+                    }
+                }
+                styleCheck.remove();
+            }, 100);
+        }
+        
+        function checkQuickAdd() {
+            const output = document.getElementById('quickadd-check-output');
+            output.innerHTML = '检查快速添加功能...<br>';
+            
+            // 检查 quickAddRecord 函数
+            if (typeof quickAddRecord === 'function') {
+                output.innerHTML += '✅ quickAddRecord 函数存在<br>';
+                
+                // 测试函数逻辑
+                const testDate = '2024-06-09';
+                try {
+                    // 模拟必要的元素
+                    const dateInput = document.createElement('input');
+                    dateInput.id = 'rec-date';
+                    dateInput.type = 'date';
+                    document.body.appendChild(dateInput);
+                    
+                    // 检查函数是否能被调用
+                    quickAddRecord(testDate);
+                    
+                    if (dateInput.value === testDate) {
+                        output.innerHTML += '<span style="color:green">✅ 日期设置功能正常</span><br>';
+                    } else {
+                        output.innerHTML += '<span style="color:red">❌ 日期设置失败</span><br>';
+                    }
+                    
+                    dateInput.remove();
+                } catch (e) {
+                    output.innerHTML += '<span style="color:red">❌ 函数执行错误: ' + e.message + '</span><br>';
+                }
+            } else {
+                output.innerHTML += '❌ quickAddRecord 函数不存在<br>';
+            }
+        }
+    </script>
+</body>
+</html>

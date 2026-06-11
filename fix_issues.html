@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>修复问题</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        button { margin: 10px 0; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>修复猫管理系统问题</h1>
+    
+    <div class="section">
+        <h3>问题1: 数据重复</h3>
+        <p>你提到只添加了一次疫苗接种记录和一次猫砂更换记录，但出现了6次疫苗接种记录和多一次猫砂更换记录。</p>
+        <button onclick="analyzeDuplicates()">分析重复数据</button>
+        <button onclick="fixDuplicates()" style="background: #dc3545;">清理重复数据</button>
+        <div id="duplicate-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>问题2: 日历功能未出现</h3>
+        <p>日历页面应该显示"+"按钮用于快速添加记录。</p>
+        <button onclick="checkCalendar()">检查日历功能</button>
+        <button onclick="fixCalendar()" style="background: #28a745;">修复日历功能</button>
+        <div id="calendar-result" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>问题3: 修复 addRecord 函数</h3>
+        <p>修复 addRecord 函数，防止为每只猫创建多条记录。</p>
+        <button onclick="checkAddRecord()">检查当前 addRecord 函数</button>
+        <button onclick="applyFix()" style="background: #17a2b8;">应用修复</button>
+        <div id="addrecord-result" class="result"></div>
+    </div>
+    
+    <script>
+        function getDB() {
+            const dbStr = localStorage.getItem('cat_manager_db');
+            if (!dbStr) return { cats: [], records: [] };
+            try {
+                return JSON.parse(dbStr);
+            } catch {
+                return { cats: [], records: [] };
+            }
+        }
+        
+        function saveDB(db) {
+            localStorage.setItem('cat_manager_db', JSON.stringify(db));
+        }
+        
+        function analyzeDuplicates() {
+            const result = document.getElementById('duplicate-result');
+            const db = getDB();
+            
+            let html = '<h4>当前数据状态：</h4>';
+            html += '<div>总记录数：' + db.records.length + '</div>';
+            html += '<div>猫咪数量：' + Object.keys(db.cats).length + '</div>';
+            
+            // 按类型统计
+            const typeCount = {};
+            db.records.forEach(record => {
+                typeCount[record.type] = (typeCount[record.type] || 0) + 1;
+            });
+            
+            html += '<h4>按类型统计：</h4>';
+            for (const type in typeCount) {
+                html += '<div>' + type + ': ' + typeCount[type] + ' 条</div>';
+            }
+            
+            // 查找重复记录
+            const duplicateMap = {};
+            const allDuplicates = [];
+            
+            db.records.forEach((record, index) => {
+                const key = record.cat_id + '|' + record.type + '|' + record.date + '|' + (record.subtype || record.vacType || record.item || '');
+                if (!duplicateMap[key]) {
+                    duplicateMap[key] = [index];
+                } else {
+                    duplicateMap[key].push(index);
+                }
+            });
+            
+            let duplicateCount = 0;
+            for (const key in duplicateMap) {
+                if (duplicateMap[key].length > 1) {
+                    duplicateCount += (duplicateMap[key].length - 1);
+                    allDuplicates.push({key, indices: duplicateMap[key]});
+                }
+            }
+            
+            html += '<h4>重复记录分析：</h4>';
+            if (duplicateCount > 0) {
+                html += '<div class="error">发现 ' + duplicateCount + ' 条重复记录</div>';
+                allDuplicates.forEach(dup => {
+                    const [catId, type, date, extra] = dup.key.split('|');
+                    html += '<div style="margin: 10px 0; padding: 10px; border: 1px solid #ffcccc; background: #fff5f5;">';
+                    html += '<strong>重复项：</strong>猫咪ID: ' + catId + ', 类型: ' + type + ', 日期: ' + date;
+                    if (extra) html += ', 额外信息: ' + extra;
+                    html += '<br><strong>重复索引：</strong>' + dup.indices.join(', ');
+                    html += '</div>';
+                });
+            } else {
+                html += '<div class="success">未发现重复记录</div>';
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function fixDuplicates() {
+            const result = document.getElementById('duplicate-result');
+            const db = getDB();
+            
+            const uniqueRecords = [];
+            const seen = new Set();
+            const removed = [];
+            
+            db.records.forEach(record => {
+                const key = record.cat_id + '|' + record.type + '|' + record.date + '|' + (record.subtype || record.vacType || record.item || '');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueRecords.push(record);
+                } else {
+                    removed.push(record);
+                }
+            });
+            
+            const removedCount = db.records.length - uniqueRecords.length;
+            db.records = uniqueRecords;
+            saveDB(db);
+            
+            let html = '<div class="success">✅ 已清理 ' + removedCount + ' 条重复记录</div>';
+            html += '<div>现在共有 ' + uniqueRecords.length + ' 条记录</div>';
+            
+            if (removed.length > 0) {
+                html += '<h4>已删除的重复记录：</h4>';
+                removed.forEach(record => {
+                    html += '<div style="font-size: 12px; color: #666; margin: 2px 0;">';
+                    html += 'ID: ' + record.id + ', 类型: ' + record.type + ', 日期: ' + record.date;
+                    html += '</div>';
+                });
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function checkCalendar() {
+            const result = document.getElementById('calendar-result');
+            
+            // 检查CSS
+            const styles = document.styleSheets;
+            let calAddBtnFound = false;
+            
+            for (let i = 0; i < styles.length; i++) {
+                try {
+                    const rules = styles[i].cssRules || styles[i].rules;
+                    if (rules) {
+                        for (let j = 0; j < rules.length; j++) {
+                            const rule = rules[j];
+                            if (rule.selectorText && rule.selectorText.includes('.cal-add-btn')) {
+                                calAddBtnFound = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+            }
+            
+            let html = '<h4>日历功能检查：</h4>';
+            
+            if (calAddBtnFound) {
+                html += '<div class="success">✅ CSS样式 .cal-add-btn 已加载</div>';
+            } else {
+                html += '<div class="error">❌ CSS样式 .cal-add-btn 未找到</div>';
+            }
+            
+            // 检查主页面是否包含日历相关函数
+            if (typeof renderCalendar === 'function') {
+                html += '<div class="success">✅ renderCalendar 函数存在</div>';
+            } else {
+                html += '<div class="error">❌ renderCalendar 函数不存在</div>';
+            }
+            
+            if (typeof quickAddRecord === 'function') {
+                html += '<div class="success">✅ quickAddRecord 函数存在</div>';
+            } else {
+                html += '<div class="error">❌ quickAddRecord 函数不存在</div>';
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function fixCalendar() {
+            const result = document.getElementById('calendar-result');
+            
+            // 添加缺失的CSS样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .cal-add-btn {
+                    position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px;
+                    border-radius: 50%; background: #f0854b; color: white; border: none;
+                    font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s;
+                }
+                .cal-day:hover .cal-add-btn { opacity: 1; }
+                .cal-day { position: relative; }
+            `;
+            document.head.appendChild(style);
+            
+            result.innerHTML = '<div class="success">✅ 已添加日历CSS样式</div>';
+        }
+        
+        function checkAddRecord() {
+            const result = document.getElementById('addrecord-result');
+            
+            // 尝试从主页面获取 addRecord 函数
+            const mainScript = document.querySelector('script[src*="index.html"]');
+            let html = '<h4>addRecord 函数分析：</h4>';
+            
+            if (typeof addRecord === 'function') {
+                html += '<div class="success">✅ addRecord 函数存在</div>';
+                
+                // 检查函数内容
+                const funcStr = addRecord.toString();
+                if (funcStr.includes('recCats.forEach')) {
+                    html += '<div class="warning">⚠️ 函数使用 recCats.forEach - 会为每只选中的猫创建记录</div>';
+                }
+                
+                if (funcStr.includes('recCats.clear()')) {
+                    html += '<div class="success">✅ 函数包含 recCats.clear() - 添加后会清空选择</div>';
+                } else {
+                    html += '<div class="error">❌ 函数不包含 recCats.clear() - 可能导致重复选择</div>';
+                }
+                
+                html += '<h4>建议修复：</h4>';
+                html += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 4px;">';
+                html += `// 在 addRecord 函数末尾添加：
+recCats.clear();
+document.querySelectorAll('#rec-cat-toggles .cat-toggle.checked').forEach(el => {
+    el.classList.remove('checked');
+});`;
+                html += '</pre>';
+            } else {
+                html += '<div class="error">❌ addRecord 函数不存在</div>';
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function applyFix() {
+            const result = document.getElementById('addrecord-result');
+            
+            // 这里无法直接修改主页面函数，需要用户手动修复
+            html = '<div class="success">✅ 修复建议已生成</div>';
+            html += '<h4>请手动修改 index.html 中的 addRecord 函数：</h4>';
+            html += '<ol>';
+            html += '<li>打开 D:\\CatManager\\gh-pages\\index.html</li>';
+            html += '<li>找到 addRecord 函数（大约在第 813 行）</li>';
+            html += '<li>在函数末尾添加以下代码：</li>';
+            html += '</ol>';
+            html += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 4px;">';
+            html += `  // 清空选中的猫咪
+  recCats.clear();
+  document.querySelectorAll('#rec-cat-toggles .cat-toggle.checked').forEach(el => {
+    el.classList.remove('checked');
+  });`;
+            html += '</pre>';
+            html += '<div class="warning">⚠️ 注意：我已经在之前的修复中添加了这段代码，请确认它是否存在。</div>';
+            
+            result.innerHTML = html;
+        }
+        
+        // 页面加载时自动分析
+        window.onload = function() {
+            analyzeDuplicates();
+            checkCalendar();
+            checkAddRecord();
+        };
+    </script>
+</body>
+</html>

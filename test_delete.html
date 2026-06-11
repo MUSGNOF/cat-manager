@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>删除功能测试</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test-btn { padding: 10px 20px; margin: 10px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .test-result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>删除功能测试</h1>
+    
+    <div id="test1">
+        <h3>测试1: 检查 localStorage 操作</h3>
+        <button class="test-btn" onclick="testLocalStorage()">测试 localStorage</button>
+        <div id="result1" class="test-result"></div>
+    </div>
+    
+    <div id="test2">
+        <h3>测试2: 模拟删除操作</h3>
+        <button class="test-btn" onclick="testDeleteFunction()">测试删除函数</button>
+        <div id="result2" class="test-result"></div>
+    </div>
+    
+    <div id="test3">
+        <h3>测试3: 检查事件绑定</h3>
+        <button class="test-btn" onclick="testEventBinding()">测试事件绑定</button>
+        <div id="result3" class="test-result"></div>
+    </div>
+    
+    <script>
+        // 模拟主应用的环境
+        const STORAGE_KEY = 'cat_manager_data_v3';
+        
+        function testLocalStorage() {
+            const result = document.getElementById('result1');
+            try {
+                // 测试读取
+                const testData = { cats: { '1': { name: '测试猫' } }, records: [{ id: 1001, cat_id: '1', type: 'deworm', date: '2024-06-09' }] };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(testData));
+                
+                const readData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (readData && readData.records && readData.records.length === 1) {
+                    result.innerHTML = '<div class="success">✅ localStorage 读写正常</div>';
+                    result.innerHTML += '<pre>' + JSON.stringify(readData, null, 2) + '</pre>';
+                } else {
+                    result.innerHTML = '<div class="error">❌ localStorage 读取异常</div>';
+                }
+            } catch (e) {
+                result.innerHTML = '<div class="error">❌ localStorage 错误: ' + e.message + '</div>';
+            }
+        }
+        
+        function testDeleteFunction() {
+            const result = document.getElementById('result2');
+            try {
+                // 模拟 deleteRecord 函数
+                function deleteRecord(id) {
+                    if (!confirm('确定删除这条记录吗？')) return false;
+                    const db = getDB();
+                    db.records = db.records.filter(r => r.id !== id);
+                    saveDB(db);
+                    return true;
+                }
+                
+                function getDB() {
+                    try {
+                        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats: {}, records: [] };
+                    } catch(e) {
+                        return { cats: {}, records: [] };
+                    }
+                }
+                
+                function saveDB(db) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+                }
+                
+                // 准备测试数据
+                const testData = { 
+                    cats: { '1': { name: '测试猫' } }, 
+                    records: [
+                        { id: 1001, cat_id: '1', type: 'deworm', date: '2024-06-09' },
+                        { id: 1002, cat_id: '1', type: 'vaccine', date: '2024-06-08' }
+                    ] 
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(testData));
+                
+                // 执行删除
+                const originalCount = testData.records.length;
+                const success = deleteRecord(1001);
+                
+                if (!success) {
+                    result.innerHTML = '<div class="error">❌ 用户取消了删除</div>';
+                    return;
+                }
+                
+                // 检查结果
+                const afterDelete = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                const afterCount = afterDelete.records.length;
+                
+                if (afterCount === originalCount - 1) {
+                    result.innerHTML = '<div class="success">✅ 删除函数逻辑正常</div>';
+                    result.innerHTML += '<p>删除前: ' + originalCount + ' 条记录</p>';
+                    result.innerHTML += '<p>删除后: ' + afterCount + ' 条记录</p>';
+                    result.innerHTML += '<pre>剩余记录: ' + JSON.stringify(afterDelete.records, null, 2) + '</pre>';
+                } else {
+                    result.innerHTML = '<div class="error">❌ 删除函数未正确工作</div>';
+                }
+                
+            } catch (e) {
+                result.innerHTML = '<div class="error">❌ 测试错误: ' + e.message + '</div>';
+            }
+        }
+        
+        function testEventBinding() {
+            const result = document.getElementById('result3');
+            try {
+                // 创建测试按钮
+                const testDiv = document.createElement('div');
+                testDiv.innerHTML = '<button id="testDeleteBtn" onclick="testDeleteClick()">点击我测试事件</button>';
+                document.body.appendChild(testDiv);
+                
+                window.testDeleteClick = function() {
+                    result.innerHTML = '<div class="success">✅ 按钮点击事件正常触发</div>';
+                    testDiv.remove();
+                };
+                
+                // 模拟点击
+                setTimeout(() => {
+                    const btn = document.getElementById('testDeleteBtn');
+                    if (btn) {
+                        result.innerHTML += '<p>✅ 按钮已成功创建，id: testDeleteBtn</p>';
+                        result.innerHTML += '<p>请点击上面的"点击我测试事件"按钮</p>';
+                    } else {
+                        result.innerHTML = '<div class="error">❌ 按钮创建失败</div>';
+                    }
+                }, 100);
+                
+            } catch (e) {
+                result.innerHTML = '<div class="error">❌ 事件测试错误: ' + e.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

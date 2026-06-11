@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单删除测试</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test-record { 
+            padding: 15px; margin: 10px 0; 
+            border: 1px solid #ddd; border-radius: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .delete-btn { 
+            padding: 5px 10px; background: #e74c3c; color: white;
+            border: none; border-radius: 3px; cursor: pointer;
+        }
+        .delete-btn:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+    <h1>简单删除功能测试</h1>
+    
+    <div id="test-container">
+        <div class="test-record">
+            <span>测试记录 #1 (ID: 1001)</span>
+            <button class="delete-btn" onclick="testDelete(1001)">删除</button>
+        </div>
+        <div class="test-record">
+            <span>测试记录 #2 (ID: 1002)</span>
+            <button class="delete-btn" onclick="testDelete(1002)">删除</button>
+        </div>
+        <div class="test-record">
+            <span>测试记录 #3 (ID: 1003)</span>
+            <button class="delete-btn" onclick="testDelete(1003)">删除</button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <h3>测试说明：</h3>
+        <p>1. 点击上面的"删除"按钮</p>
+        <p>2. 如果弹出确认对话框，点击"确定"</p>
+        <p>3. 观察按钮是否响应，记录是否消失</p>
+        <p id="test-result" style="color: #2c3e50; font-weight: bold;"></p>
+    </div>
+    
+    <script>
+        // 从主文件复制的关键函数
+        const STORAGE_KEY = 'cat_manager_data_v3_test';
+        
+        function getDB() { 
+            try { 
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{}, records:[] }; 
+            } catch(e) { 
+                return { cats:{}, records:[] }; 
+            } 
+        }
+        
+        function saveDB(db) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
+        
+        function showToast(msg) {
+            console.log('Toast:', msg);
+            document.getElementById('test-result').textContent = '提示: ' + msg;
+        }
+        
+        // 测试删除函数 - 与主文件完全一致
+        function testDelete(id) {
+            console.log('testDelete called with id:', id);
+            document.getElementById('test-result').textContent = '正在删除记录 ' + id + '...';
+            
+            if (!confirm('确定删除这条记录吗？')) {
+                console.log('User cancelled delete');
+                document.getElementById('test-result').textContent = '用户取消了删除';
+                return;
+            }
+            
+            console.log('User confirmed delete');
+            const db = getDB();
+            console.log('Before delete - records:', db.records);
+            
+            db.records = db.records.filter(r => {
+                console.log('Checking record', r.id, 'against', id, 'result:', r.id !== id);
+                return r.id !== id;
+            });
+            
+            console.log('After delete - records:', db.records);
+            saveDB(db);
+            
+            // 尝试移除对应的DOM元素
+            const records = document.querySelectorAll('.test-record');
+            records.forEach(record => {
+                if (record.textContent.includes('ID: ' + id)) {
+                    record.style.opacity = '0.5';
+                    record.style.textDecoration = 'line-through';
+                    setTimeout(() => record.remove(), 500);
+                }
+            });
+            
+            showToast('已删除记录 ' + id);
+            console.log('Delete completed for id:', id);
+        }
+        
+        // 初始化测试数据
+        function initTestData() {
+            const testData = {
+                cats: { '1': { name: '测试猫' } },
+                records: [
+                    { id: 1001, cat_id: '1', type: 'deworm', date: '2024-06-09' },
+                    { id: 1002, cat_id: '1', type: 'vaccine', date: '2024-06-08' },
+                    { id: 1003, cat_id: '1', type: 'checkup', date: '2024-06-07' }
+                ]
+            };
+            saveDB(testData);
+            console.log('Test data initialized:', testData);
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            initTestData();
+            console.log('Test page loaded');
+            document.getElementById('test-result').textContent = '点击上面的删除按钮开始测试';
+        };
+    </script>
+</body>
+</html>

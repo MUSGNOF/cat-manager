@@ -1,0 +1,3 @@
+# 请在此处输入你的 GitHub Personal Access Token
+# 获取方法见上面的说明
+# 格式: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

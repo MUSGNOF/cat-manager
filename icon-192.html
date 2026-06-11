@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>生成图标</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>生成应用图标</h1>
+    <p>由于缺少图标文件，这里提供了一个简单的生成器。</p>
+    
+    <canvas id="icon192" width="192" height="192"></canvas>
+    <canvas id="icon512" width="512" height="512"></canvas>
+    
+    <div>
+        <button onclick="generateIcons()">生成图标</button>
+        <button onclick="downloadIcons()">下载图标</button>
+    </div>
+    
+    <script>
+        function generateIcons() {
+            // 生成192x192图标
+            const canvas192 = document.getElementById('icon192');
+            const ctx192 = canvas192.getContext('2d');
+            
+            // 橙色背景
+            ctx192.fillStyle = '#f0854b';
+            ctx192.fillRect(0, 0, 192, 192);
+            
+            // 白色猫头
+            ctx192.fillStyle = 'white';
+            ctx192.beginPath();
+            ctx192.arc(96, 96, 70, 0, Math.PI * 2); // 头部
+            ctx192.fill();
+            
+            // 耳朵
+            ctx192.beginPath();
+            ctx192.moveTo(60, 50);
+            ctx192.lineTo(80, 30);
+            ctx192.lineTo(100, 50);
+            ctx192.fill();
+            
+            ctx192.beginPath();
+            ctx192.moveTo(132, 50);
+            ctx192.lineTo(152, 30);
+            ctx192.lineTo(172, 50);
+            ctx192.fill();
+            
+            // 眼睛
+            ctx192.fillStyle = '#f0854b';
+            ctx192.beginPath();
+            ctx192.arc(75, 85, 12, 0, Math.PI * 2);
+            ctx192.arc(117, 85, 12, 0, Math.PI * 2);
+            ctx192.fill();
+            
+            // 鼻子
+            ctx192.beginPath();
+            ctx192.arc(96, 110, 8, 0, Math.PI * 2);
+            ctx192.fill();
+            
+            // 嘴巴
+            ctx192.strokeStyle = '#f0854b';
+            ctx192.lineWidth = 4;
+            ctx192.beginPath();
+            ctx192.arc(96, 110, 20, 0.2, Math.PI - 0.2);
+            ctx192.stroke();
+            
+            // 生成512x512图标
+            const canvas512 = document.getElementById('icon512');
+            const ctx512 = canvas512.getContext('2d');
+            
+            // 缩放192图标到512
+            ctx512.drawImage(canvas192, 0, 0, 192, 192, 0, 0, 512, 512);
+        }
+        
+        function downloadIcons() {
+            // 下载192图标
+            const canvas192 = document.getElementById('icon192');
+            const link192 = document.createElement('a');
+            link192.download = 'icon-192.png';
+            link192.href = canvas192.toDataURL('image/png');
+            link192.click();
+            
+            // 下载512图标
+            const canvas512 = document.getElementById('icon512');
+            const link512 = document.createElement('a');
+            link512.download = 'icon-512.png';
+            link512.href = canvas512.toDataURL('image/png');
+            link512.click();
+            
+            alert('图标已生成，请保存到 D:\\CatManager\\gh-pages\\ 目录下');
+        }
+        
+        // 页面加载时自动生成
+        window.onload = generateIcons;
+    </script>
+</body>
+</html>

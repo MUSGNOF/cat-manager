@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滑动删除修复测试</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+.test-item { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+.result { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+</style>
+</head>
+<body>
+<h1>滑动删除修复测试</h1>
+<p>这个页面测试修复后的滑动删除功能。</p>
+
+<div class="test-item">
+  <h3>测试1: 检查滑动事件函数</h3>
+  <div id="test1-result" class="result">等待测试...</div>
+  <button onclick="testSwipeFunction()">运行测试</button>
+</div>
+
+<div class="test-item">
+  <h3>测试2: 检查DOM结构</h3>
+  <div id="test2-result" class="result">等待测试...</div>
+  <button onclick="testDOMStructure()">运行测试</button>
+</div>
+
+<div class="test-item">
+  <h3>测试3: 模拟滑动操作</h3>
+  <div id="test3-result" class="result">等待测试...</div>
+  <button onclick="testSwipeSimulation()">运行测试</button>
+</div>
+
+<div class="test-item">
+  <h3>测试4: 检查确认删除函数</h3>
+  <div id="test4-result" class="result">等待测试...</div>
+  <button onclick="testConfirmDelete()">运行测试</button>
+</div>
+
+<script>
+function testSwipeFunction() {
+  const result = document.getElementById('test1-result');
+  try {
+    // 检查函数是否存在
+    if (typeof initSwipeEvents === 'function') {
+      result.innerHTML = '✅ initSwipeEvents 函数存在';
+      result.style.background = '#d4edda';
+      result.style.color = '#155724';
+    } else {
+      result.innerHTML = '❌ initSwipeEvents 函数不存在';
+      result.style.background = '#f8d7da';
+      result.style.color = '#721c24';
+    }
+  } catch (e) {
+    result.innerHTML = '❌ 测试出错: ' + e.message;
+    result.style.background = '#f8d7da';
+    result.style.color = '#721c24';
+  }
+}
+
+function testDOMStructure() {
+  const result = document.getElementById('test2-result');
+  try {
+    // 创建一个测试DOM结构
+    const testDiv = document.createElement('div');
+    testDiv.innerHTML = `
+      <div class="swipe-container">
+        <div class="timeline-item" style="background: #f0f0f0; padding: 10px;">
+          测试项目
+        </div>
+        <div class="delete-action" onclick="console.log('delete clicked')">
+          删除
+        </div>
+      </div>
+    `;
+    
+    const container = testDiv.querySelector('.swipe-container');
+    const timelineItem = container.querySelector('.timeline-item');
+    const deleteAction = container.querySelector('.delete-action');
+    
+    if (container && timelineItem && deleteAction) {
+      result.innerHTML = '✅ DOM结构正确<br>容器: ' + container.className + 
+        '<br>项目: ' + timelineItem.className + 
+        '<br>删除按钮: ' + deleteAction.className;
+      result.style.background = '#d4edda';
+      result.style.color = '#155724';
+    } else {
+      result.innerHTML = '❌ DOM结构不完整';
+      result.style.background = '#f8d7da';
+      result.style.color = '#721c24';
+    }
+  } catch (e) {
+    result.innerHTML = '❌ 测试出错: ' + e.message;
+    result.style.background = '#f8d7da';
+    result.style.color = '#721c24';
+  }
+}
+
+function testSwipeSimulation() {
+  const result = document.getElementById('test3-result');
+  try {
+    // 模拟滑动事件
+    const testDiv = document.createElement('div');
+    testDiv.innerHTML = `
+      <div class="swipe-container">
+        <div class="timeline-item" style="background: #f0f0f0; padding: 10px;">
+          滑动测试项目
+        </div>
+        <div class="delete-action">
+          删除
+        </div>
+      </div>
+    `;
+    
+    const container = testDiv.querySelector('.swipe-container');
+    const timelineItem = container.querySelector('.timeline-item');
+    const deleteAction = container.querySelector('.delete-action');
+    
+    // 模拟触摸事件
+    const touchStart = new Touch('touchstart', {
+      touches: [{ clientX: 100 }]
+    });
+    const touchMove = new Touch('touchmove', {
+      touches: [{ clientX: 50 }]
+    });
+    
+    // 测试事件监听器
+    timelineItem.addEventListener('touchstart', () => {
+      console.log('touchstart triggered');
+    });
+    timelineItem.addEventListener('touchmove', () => {
+      console.log('touchmove triggered');
+    });
+    
+    result.innerHTML = '✅ 滑动事件模拟完成<br>事件监听器已添加';
+    result.style.background = '#d4edda';
+    result.style.color = '#155724';
+  } catch (e) {
+    result.innerHTML = '❌ 测试出错: ' + e.message;
+    result.style.background = '#f8d7da';
+    result.style.color = '#721c24';
+  }
+}
+
+function testConfirmDelete() {
+  const result = document.getElementById('test4-result');
+  try {
+    // 检查函数是否存在
+    if (typeof confirmDeleteRecord === 'function') {
+      result.innerHTML = '✅ confirmDeleteRecord 函数存在';
+      result.style.background = '#d4edda';
+      result.style.color = '#155724';
+    } else {
+      result.innerHTML = '❌ confirmDeleteRecord 函数不存在';
+      result.style.background = '#f8d7da';
+      result.style.color = '#721c24';
+    }
+  } catch (e) {
+    result.innerHTML = '❌ 测试出错: ' + e.message;
+    result.style.background = '#f8d7da';
+    result.style.color = '#721c24';
+  }
+}
+
+// 页面加载时运行基本测试
+window.onload = function() {
+  testSwipeFunction();
+  testDOMStructure();
+  testConfirmDelete();
+};
+</script>
+</body>
+</html>

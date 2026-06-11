@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查数据</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+        button { margin: 10px 0; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>检查猫管理系统数据</h1>
+    <button onclick="checkData()">检查数据</button>
+    <button onclick="clearDuplicates()">清理重复数据</button>
+    <div id="result"></div>
+
+    <script>
+        function getDB() {
+            const dbStr = localStorage.getItem('cat_manager_db');
+            if (!dbStr) return { cats: [], records: [] };
+            try {
+                return JSON.parse(dbStr);
+            } catch {
+                return { cats: [], records: [] };
+            }
+        }
+
+        function checkData() {
+            const db = getDB();
+            const result = document.getElementById('result');
+            
+            let html = '<h3>猫咪列表 (' + db.cats.length + ' 只)</h3>';
+            db.cats.forEach(cat => {
+                html += '<div>ID: ' + cat.id + ', 名字: ' + cat.name + '</div>';
+            });
+            
+            html += '<h3>记录列表 (' + db.records.length + ' 条)</h3>';
+            const recordMap = {};
+            db.records.forEach((record, index) => {
+                const key = record.cat_id + '-' + record.type + '-' + record.date + (record.subtype || record.vacType || record.item || '');
+                if (recordMap[key]) {
+                    recordMap[key].push(index);
+                } else {
+                    recordMap[key] = [index];
+                }
+            });
+            
+            html += '<h4>重复记录分析：</h4>';
+            let hasDuplicates = false;
+            for (const key in recordMap) {
+                if (recordMap[key].length > 1) {
+                    hasDuplicates = true;
+                    html += '<div style="color: red; margin: 5px 0;">';
+                    html += '重复键: ' + key + ' (出现 ' + recordMap[key].length + ' 次)';
+                    html += ' - 索引: ' + recordMap[key].join(', ');
+                    html += '</div>';
+                }
+            }
+            
+            if (!hasDuplicates) {
+                html += '<div style="color: green;">未发现重复记录</div>';
+            }
+            
+            html += '<h4>所有记录详情：</h4>';
+            db.records.forEach((record, index) => {
+                html += '<div style="border: 1px solid #ccc; margin: 5px 0; padding: 5px;">';
+                html += '索引: ' + index + ', ID: ' + record.id + ', 猫咪ID: ' + record.cat_id + ', 类型: ' + record.type;
+                html += ', 日期: ' + record.date;
+                if (record.subtype) html += ', 子类型: ' + record.subtype;
+                if (record.vacType) html += ', 疫苗类型: ' + record.vacType;
+                if (record.item) html += ', 项目: ' + record.item;
+                if (record.note) html += ', 备注: ' + record.note;
+                html += '</div>';
+            });
+            
+            result.innerHTML = html;
+        }
+
+        function clearDuplicates() {
+            const db = getDB();
+            const uniqueRecords = [];
+            const seen = new Set();
+            
+            db.records.forEach(record => {
+                const key = record.cat_id + '-' + record.type + '-' + record.date + (record.subtype || record.vacType || record.item || '');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueRecords.push(record);
+                }
+            });
+            
+            const removed = db.records.length - uniqueRecords.length;
+            db.records = uniqueRecords;
+            localStorage.setItem('cat_manager_db', JSON.stringify(db));
+            
+            alert('已清理 ' + removed + ' 条重复记录，现在共有 ' + uniqueRecords.length + ' 条记录');
+            checkData();
+        }
+    </script>
+</body>
+</html>

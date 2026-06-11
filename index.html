@@ -275,6 +275,32 @@ body {
   display: none;
 }
 
+/* ====== 批量操作 ====== */
+.batch-btn {
+  padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--card); font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.batch-btn:active { background: var(--bg); border-color: var(--orange); color: var(--orange); }
+.batch-btn.danger { border-color: #e74c3c; color: #e74c3c; }
+.batch-btn.danger:active { background: #fdf0ef; }
+.batch-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 20px; margin: 0 16px 8px;
+  background: var(--orange-light); border-radius: var(--radius-xs);
+  font-size: 13px;
+}
+.batch-check-all { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--orange); font-weight: 600; }
+.batch-check-all input { accent-color: var(--orange); width: 16px; height: 16px; cursor: pointer; }
+.batch-count { color: var(--text-secondary); font-size: 12px; }
+.record-check { display: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 2; width: 20px; height: 20px; accent-color: var(--orange); cursor: pointer; }
+.batch-mode .record-check { display: block; }
+.batch-mode .swipe-container { position: relative; }
+.batch-mode .timeline-item { padding-left: 44px; transition: none !important; }
+.batch-mode .delete-action { display: none !important; }
+.batch-mode .swipe-container.swiped .timeline-item { transform: none !important; }
+.batch-mode .timeline-item { cursor: default; }
+
 /* ====== 日历 ====== */
 .cal-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -425,8 +451,14 @@ body {
     <div class="filter-chip" data-filter="litter" onclick="setHistoryType('litter', this)">猫砂</div>
     <div class="filter-chip" data-filter="bath" onclick="setHistoryType('bath', this)">洗澡</div>
   </div>
-  <div class="filter-row" style="padding-top:4px;">
-    <input class="search-input" id="hist-search" placeholder="搜索关键词..." oninput="renderHistory()">
+  <div class="filter-row" style="padding-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <input class="search-input" id="hist-search" placeholder="搜索关键词..." oninput="renderHistory()" style="flex:1;min-width:120px;">
+    <button class="batch-btn" id="batch-toggle-btn" onclick="toggleBatchMode()">选择</button>
+    <button class="batch-btn danger" id="batch-delete-btn" onclick="batchDelete()" style="display:none;">删除所选</button>
+  </div>
+  <div class="batch-bar" id="batch-bar" style="display:none;">
+    <label class="batch-check-all"><input type="checkbox" id="batch-select-all" onchange="toggleSelectAll()"> 全选</label>
+    <span class="batch-count" id="batch-count">已选 0 条</span>
   </div>
   <div class="timeline" id="history-list"></div>
 </div>
@@ -966,6 +998,7 @@ function renderHistory() {
     html += '<div class="swipe-container" data-record-id="' + r.id + '">';
     html += '<div class="delete-action" onclick="confirmDeleteRecord(' + r.id + ', this)">删除</div>';
     html += '<div class="timeline-item" data-record-id="' + r.id + '">';
+    html += '<input type="checkbox" class="record-check" data-record-id="' + r.id + '" onclick="toggleRecordSelect(' + r.id + ', this)">';
     html += '<div class="timeline-dot" style="background:'+(typeColors[r.type]||'#999')+'"></div>';
     html += '<div class="timeline-content">';
     html += '<div class="timeline-date">'+r.date+'</div>';
@@ -987,6 +1020,8 @@ function renderHistory() {
 
 // 滑动删除相关函数
 function initSwipeEvents() {
+  // 批量模式下不初始化滑动
+  if (batchMode) return;
   const swipeContainers = document.querySelectorAll('.swipe-container');
   console.log('初始化滑动事件，找到容器数量:', swipeContainers.length);
   
@@ -1175,6 +1210,84 @@ function deleteRecord(id) {
   // 如果当前在日历详情面板，需要更新详情
   if (calSelected) calShowDetail(calSelected);
   showToast('已删除');
+}
+
+// ====== 批量选择 ======
+let batchMode = false;
+let selectedRecords = new Set();
+
+function toggleBatchMode() {
+  batchMode = !batchMode;
+  if (!batchMode) selectedRecords.clear();
+  updateBatchUI();
+  renderHistory();
+}
+
+function updateBatchUI() {
+  const toggleBtn = document.getElementById('batch-toggle-btn');
+  const deleteBtn = document.getElementById('batch-delete-btn');
+  const bar = document.getElementById('batch-bar');
+  const selectAll = document.getElementById('batch-select-all');
+  const countSpan = document.getElementById('batch-count');
+  const historyList = document.getElementById('history-list');
+
+  if (batchMode) {
+    toggleBtn.textContent = '取消';
+    deleteBtn.style.display = '';
+    bar.style.display = '';
+    historyList.classList.add('batch-mode');
+    selectAll.checked = false;
+    countSpan.textContent = '已选 0 条';
+    deleteBtn.textContent = '删除所选';
+  } else {
+    toggleBtn.textContent = '选择';
+    deleteBtn.style.display = 'none';
+    bar.style.display = 'none';
+    historyList.classList.remove('batch-mode');
+  }
+}
+
+function toggleSelectAll() {
+  const selectAll = document.getElementById('batch-select-all');
+  const checkboxes = document.querySelectorAll('.record-check');
+  if (selectAll.checked) {
+    checkboxes.forEach(cb => { cb.checked = true; selectedRecords.add(parseInt(cb.dataset.recordId)); });
+  } else {
+    checkboxes.forEach(cb => { cb.checked = false; selectedRecords.delete(parseInt(cb.dataset.recordId)); });
+  }
+  updateBatchCount();
+}
+
+function toggleRecordSelect(id, checkbox) {
+  id = parseInt(id);
+  if (checkbox.checked) selectedRecords.add(id);
+  else selectedRecords.delete(id);
+  updateBatchCount();
+}
+
+function updateBatchCount() {
+  document.getElementById('batch-count').textContent = '已选 ' + selectedRecords.size + ' 条';
+  document.getElementById('batch-delete-btn').textContent = '删除所选(' + selectedRecords.size + ')';
+}
+
+function batchDelete() {
+  if (selectedRecords.size === 0) return;
+  if (!confirm('确定删除选中的 ' + selectedRecords.size + ' 条记录吗？此操作不可撤销。')) return;
+
+  const db = getDB();
+  db.records = db.records.filter(r => !selectedRecords.has(r.id));
+  saveDB(db);
+
+  const deletedCount = selectedRecords.size;
+  selectedRecords.clear();
+  batchMode = false;
+
+  renderHistory();
+  renderDashboard();
+  renderCalendar();
+  if (calSelected) calShowDetail(calSelected);
+  updateBatchUI();
+  showToast('已删除 ' + deletedCount + ' 条');
 }
 
 // ====== Calendar ======

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>简化滑动删除修复</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --orange: #f0854b; --orange-light: #fff0e8; --orange-dark: #e0753a;
+            --blue: #4a90d9; --blue-light: #eaf3fd;
+            --green: #27ae60; --green-light: #eafaf1;
+            --purple: #8e44ad; --purple-light: #f5edf9;
+            --cyan: #00acc1; --cyan-light: #e0f7fa;
+            --bg: #f8f6f3; --card: #fff; --text: #2c1810;
+            --text-secondary: #8c7b6e; --text-muted: #b8a99a;
+            --border: #ece6df; --shadow: 0 2px 16px rgba(44,24,16,0.06);
+            --radius: 16px; --radius-sm: 10px; --radius-xs: 6px;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: var(--bg);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .swipe-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            background: var(--card);
+            box-shadow: var(--shadow);
+        }
+        
+        .swipe-content {
+            padding: 16px;
+            background: var(--card);
+            transition: transform 0.3s ease;
+            touch-action: pan-y;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            right: -80px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #e74c3c;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: right 0.3s ease;
+        }
+        
+        .delete-btn.visible {
+            right: 0;
+        }
+        
+        .swipe-content.swiped {
+            transform: translateX(-80px);
+        }
+        
+        .record-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .record-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--orange);
+            flex-shrink: 0;
+        }
+        
+        .record-details {
+            flex: 1;
+        }
+        
+        .record-date {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .record-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .record-type {
+            font-size: 12px;
+            padding: 2px 8px;
+            background: var(--orange-light);
+            color: var(--orange-dark);
+            border-radius: 10px;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        
+        .test-btn {
+            background: #28a745;
+        }
+        
+        .reset-btn {
+            background: #6c757d;
+        }
+        
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .instructions {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>简化滑动删除测试</h1>
+    
+    <div class="instructions">
+        <h3>测试说明：</h3>
+        <p>这个版本使用更简单的滑动逻辑，更容易调试。</p>
+        <p><strong>操作方法：</strong></p>
+        <ul>
+            <li>在项目上向左滑动（移动端）或向左拖动（桌面端）</li>
+            <li>滑动超过一半距离会显示删除按钮</li>
+            <li>点击删除按钮进行删除</li>
+            <li>点击已滑开的项目可以关闭滑动状态</li>
+        </ul>
+    </div>
+    
+    <div>
+        <h3>测试项目：</h3>
+        <div id="test-items"></div>
+        
+        <button class="test-btn" onclick="addTestItem()">添加测试项目</button>
+        <button class="reset-btn" onclick="resetTest()">重置测试</button>
+        <button onclick="testSwipeLogic()">测试滑动逻辑</button>
+    </div>
+    
+    <div class="result" id="result"></div>
+    
+    <div>
+        <h3>调试信息：</h3>
+        <div id="debug"></div>
+    </div>
+
+    <script>
+        let testItems = [
+            { id: 1, date: '2025-01-15', title: '咪咪疫苗接种', type: '疫苗' },
+            { id: 2, date: '2025-01-10', title: '小黑驱虫', type: '驱虫' },
+            { id: 3, date: '2025-01-05', title: '小白猫砂更换', type: '猫砂' }
+        ];
+        
+        function renderTestItems() {
+            const container = document.getElementById('test-items');
+            container.innerHTML = '';
+            
+            testItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'swipe-item';
+                itemDiv.dataset.id = item.id;
+                
+                itemDiv.innerHTML = `
+                    <div class="delete-btn" onclick="deleteTestItem(${item.id})">删除</div>
+                    <div class="swipe-content">
+                        <div class="record-info">
+                            <div class="record-dot"></div>
+                            <div class="record-details">
+                                <div class="record-date">${item.date}</div>
+                                <div>
+                                    <span class="record-title">${item.title}</span>
+                                    <span class="record-type">${item.type}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(itemDiv);
+                setupSwipe(itemDiv);
+            });
+            
+            showResult(`已渲染 ${testItems.length} 个测试项目`);
+        }
+        
+        function setupSwipe(container) {
+            const content = container.querySelector('.swipe-content');
+            const deleteBtn = container.querySelector('.delete-btn');
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            let isSwiped = false;
+            
+            // 触摸事件
+            content.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                logDebug('触摸开始: ' + startX);
+            });
+            
+            content.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                
+                // 只允许向左滑动
+                if (diff > 0) {
+                    const translateX = Math.min(diff, 80);
+                    content.style.transform = `translateX(-${translateX}px)`;
+                    
+                    // 超过40px显示删除按钮
+                    if (translateX > 40) {
+                        deleteBtn.classList.add('visible');
+                    } else {
+                        deleteBtn.classList.remove('visible');
+                    }
+                }
+            });
+            
+            content.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const currentTranslate = parseInt(content.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+                
+                if (currentTranslate > 40) {
+                    // 滑动到位
+                    content.style.transform = 'translateX(-80px)';
+                    content.classList.add('swiped');
+                    deleteBtn.classList.add('visible');
+                    isSwiped = true;
+                    logDebug('滑动完成: 已打开删除');
+                } else {
+                    // 恢复原状
+                    content.style.transform = '';
+                    content.classList.remove('swiped');
+                    deleteBtn.classList.remove('visible');
+                    isSwiped = false;
+                    logDebug('滑动完成: 已恢复');
+                }
+            });
+            
+            // 鼠标事件
+            content.addEventListener('mousedown', (e) => {
+                startX = e.clientX;
+                isDragging = true;
+                logDebug('鼠标按下: ' + startX);
+            });
+            
+            content.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                currentX = e.clientX;
+                const diff = startX - currentX;
+                
+                if (diff > 0) {
+                    const translateX = Math.min(diff, 80);
+                    content.style.transform = `translateX(-${translateX}px)`;
+                    
+                    if (translateX > 40) {
+                        deleteBtn.classList.add('visible');
+                    } else {
+                        deleteBtn.classList.remove('visible');
+                    }
+                }
+            });
+            
+            content.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const currentTranslate = parseInt(content.style.transform.replace('translateX(-', '').replace('px)', '') || 0);
+                
+                if (currentTranslate > 40) {
+                    content.style.transform = 'translateX(-80px)';
+                    content.classList.add('swiped');
+                    deleteBtn.classList.add('visible');
+                    isSwiped = true;
+                    logDebug('鼠标释放: 已打开删除');
+                } else {
+                    content.style.transform = '';
+                    content.classList.remove('swiped');
+                    deleteBtn.classList.remove('visible');
+                    isSwiped = false;
+                    logDebug('鼠标释放: 已恢复');
+                }
+            });
+            
+            content.addEventListener('mouseleave', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    content.style.transform = '';
+                    deleteBtn.classList.remove('visible');
+                    logDebug('鼠标离开: 已取消');
+                }
+            });
+            
+            // 点击关闭滑动状态
+            content.addEventListener('click', (e) => {
+                if (isSwiped) {
+                    content.style.transform = '';
+                    content.classList.remove('swiped');
+                    deleteBtn.classList.remove('visible');
+                    isSwiped = false;
+                    e.stopPropagation();
+                    logDebug('点击关闭滑动状态');
+                }
+            });
+        }
+        
+        function addTestItem() {
+            const newId = testItems.length + 1;
+            testItems.push({
+                id: newId,
+                date: new Date().toISOString().slice(0,10),
+                title: '测试项目 ' + newId,
+                type: '测试'
+            });
+            renderTestItems();
+            showResult('添加了测试项目 ' + newId);
+        }
+        
+        function resetTest() {
+            testItems = [
+                { id: 1, date: '2025-01-15', title: '咪咪疫苗接种', type: '疫苗' },
+                { id: 2, date: '2025-01-10', title: '小黑驱虫', type: '驱虫' },
+                { id: 3, date: '2025-01-05', title: '小白猫砂更换', type: '猫砂' }
+            ];
+            renderTestItems();
+            showResult('已重置测试项目');
+        }
+        
+        function deleteTestItem(id) {
+            if (confirm('确定删除这个测试项目吗？')) {
+                const index = testItems.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    const deletedItem = testItems.splice(index, 1)[0];
+                    renderTestItems();
+                    showResult('已删除: ' + deletedItem.title);
+                }
+            } else {
+                // 取消删除，恢复原状
+                const container = document.querySelector(`.swipe-item[data-id="${id}"]`);
+                if (container) {
+                    const content = container.querySelector('.swipe-content');
+                    const deleteBtn = container.querySelector('.delete-btn');
+                    content.style.transform = '';
+                    content.classList.remove('swiped');
+                    deleteBtn.classList.remove('visible');
+                    showResult('已取消删除');
+                }
+            }
+        }
+        
+        function testSwipeLogic() {
+            showResult('滑动逻辑测试开始...');
+            logDebug('=== 滑动逻辑测试 ===');
+            
+            // 测试1: 检查DOM元素
+            const items = document.querySelectorAll('.swipe-item');
+            logDebug(`找到 ${items.length} 个滑动项目`);
+            
+            // 测试2: 检查事件监听器
+            if (items.length > 0) {
+                const firstItem = items[0];
+                const content = firstItem.querySelector('.swipe-content');
+                const deleteBtn = firstItem.querySelector('.delete-btn');
+                
+                logDebug('第一个项目:');
+                logDebug(`- 内容元素: ${content ? '存在' : '不存在'}`);
+                logDebug(`- 删除按钮: ${deleteBtn ? '存在' : '不存在'}`);
+                logDebug(`- 删除按钮初始位置: right=${deleteBtn.style.right}`);
+            }
+            
+            // 测试3: 模拟滑动
+            setTimeout(() => {
+                showResult('滑动逻辑测试完成');
+            }, 1000);
+        }
+        
+        function showResult(message) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.style.display = 'block';
+            
+            setTimeout(() => {
+                result.style.display = 'none';
+            }, 3000);
+        }
+        
+        function logDebug(message) {
+            const debug = document.getElementById('debug');
+            const time = new Date().toLocaleTimeString();
+            debug.innerHTML += `<div style="font-size: 12px; color: #666; margin: 2px 0;">[${time}] ${message}</div>`;
+            
+            // 限制调试信息数量
+            const lines = debug.querySelectorAll('div');
+            if (lines.length > 20) {
+                lines[0].remove();
+            }
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            renderTestItems();
+            showResult('简化滑动删除测试已加载');
+        };
+    </script>
+</body>
+</html>

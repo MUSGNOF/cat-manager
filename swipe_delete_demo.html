@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滑动删除演示</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f5f5f5;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+h1 { color: #333; margin-bottom: 10px; }
+.note { color: #999; font-size: 13px; margin-bottom: 20px; }
+
+/* 滑动删除容器 */
+.swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* 记录内容 */
+.swipe-body {
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 删除按钮区域 */
+.swipe-delete {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: #e74c3c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 0 12px 12px 0;
+  cursor: pointer;
+}
+
+/* 记录内容样式 */
+.record-line { display: flex; align-items: center; gap: 10px; }
+.record-dot { width: 8px; height: 8px; border-radius: 50%; }
+.record-info { flex: 1; }
+.record-date { font-size: 11px; color: #999; }
+.record-main { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.record-name { font-size: 14px; font-weight: 600; color: #333; }
+.record-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.record-note { font-size: 12px; color: #888; margin-top: 4px; }
+
+.controls { margin: 20px 0; }
+.controls button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.btn-add { background: #007bff; color: #fff; }
+.btn-reset { background: #6c757d; color: #fff; }
+</style>
+</head>
+<body>
+
+<h1>滑动删除演示</h1>
+<p class="note">在任意记录上向左滑动即可显示删除按钮，点击删除按钮确认删除</p>
+
+<div class="controls">
+  <button class="btn-add" onclick="addRecord()">添加测试记录</button>
+  <button class="btn-reset" onclick="resetRecords()">重置</button>
+</div>
+
+<div id="list"></div>
+
+<script>
+let nextId = 4;
+const colors = ['#f0854b','#4a90d9','#27ae60','#8e44ad'];
+const tags = {
+  vaccine: { bg:'#fff0e8', color:'#d46b26', text:'疫苗' },
+  deworm:  { bg:'#eaf3fd', color:'#2a6bb5', text:'驱虫' },
+  litter:  { bg:'#f5edf9', color:'#6b3fa0', text:'猫砂' },
+  checkup: { bg:'#eafaf1', color:'#1e7a3a', text:'体检' }
+};
+
+let records = [
+  { id:1, date:'2025-06-09', name:'咪咪', type:'vaccine', detail:'猫三联', note:'年度加强针' },
+  { id:2, date:'2025-06-08', name:'小黑', type:'deworm', detail:'内外同驱', note:'' },
+  { id:3, date:'2025-06-07', name:'小白', type:'litter', detail:'', note:'换了新的豆腐猫砂' }
+];
+
+function createSwipeElement(record, index) {
+  const tag = tags[record.type] || tags.deworm;
+  const color = colors[index % colors.length];
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'swipe-wrapper';
+
+  const deleteBtn = document.createElement('div');
+  deleteBtn.className = 'swipe-delete';
+  deleteBtn.textContent = '删除';
+  deleteBtn.onclick = function(e) {
+    e.stopPropagation();
+    if (confirm('确定删除这条记录吗？')) {
+      const idx = records.findIndex(r => r.id === record.id);
+      if (idx !== -1) {
+        records.splice(idx, 1);
+        renderList();
+      }
+    } else {
+      // 取消：恢复滑动状态
+      const body = wrapper.querySelector('.swipe-body');
+      body.style.transform = '';
+      wrapper.classList.remove('swiped');
+    }
+  };
+
+  const body = document.createElement('div');
+  body.className = 'swipe-body';
+  body.innerHTML = `
+    <div class="record-line">
+      <div class="record-dot" style="background:${color}"></div>
+      <div class="record-info">
+        <div class="record-date">${record.date}</div>
+        <div class="record-main">
+          <span class="record-name">${record.name}</span>
+          <span class="record-tag" style="background:${tag.bg};color:${tag.color}">${tag.text}${record.detail ? ' · ' + record.detail : ''}</span>
+        </div>
+        ${record.note ? '<div class="record-note">' + record.note + '</div>' : ''}
+      </div>
+    </div>
+  `;
+
+  wrapper.appendChild(deleteBtn);
+  wrapper.appendChild(body);
+
+  // 滑动逻辑
+  let startX = 0, movedX = 0, dragging = false, opened = false;
+
+  body.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    dragging = true;
+    body.style.transition = 'none';
+  }, { passive: true });
+
+  body.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    movedX = startX - e.touches[0].clientX;
+    if (movedX < 0) movedX = 0;
+    if (movedX > 80) movedX = 80;
+    body.style.transform = 'translateX(-' + movedX + 'px)';
+  }, { passive: true });
+
+  body.addEventListener('touchend', function() {
+    if (!dragging) return;
+    dragging = false;
+    body.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    if (movedX > 40) {
+      body.style.transform = 'translateX(-80px)';
+      opened = true;
+      wrapper.classList.add('swiped');
+    } else {
+      body.style.transform = '';
+      opened = false;
+      wrapper.classList.remove('swiped');
+    }
+  });
+
+  // 桌面端鼠标支持
+  body.addEventListener('mousedown', function(e) {
+    startX = e.clientX;
+    dragging = true;
+    body.style.transition = 'none';
+  });
+
+  body.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    movedX = startX - e.clientX;
+    if (movedX < 0) movedX = 0;
+    if (movedX > 80) movedX = 80;
+    body.style.transform = 'translateX(-' + movedX + 'px)';
+  });
+
+  body.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    body.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    if (movedX > 40) {
+      body.style.transform = 'translateX(-80px)';
+      opened = true;
+      wrapper.classList.add('swiped');
+    } else {
+      body.style.transform = '';
+      opened = false;
+      wrapper.classList.remove('swiped');
+    }
+  });
+
+  body.addEventListener('mouseleave', function() {
+    if (dragging) {
+      dragging = false;
+      body.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      body.style.transform = '';
+      wrapper.classList.remove('swiped');
+    }
+  });
+
+  // 点击已滑开的项目：关闭
+  body.addEventListener('click', function(e) {
+    if (opened && movedX < 5) {
+      body.style.transform = '';
+      opened = false;
+      wrapper.classList.remove('swiped');
+    }
+  });
+
+  return wrapper;
+}
+
+function renderList() {
+  const container = document.getElementById('list');
+  container.innerHTML = '';
+  records.forEach((record, index) => {
+    container.appendChild(createSwipeElement(record, index));
+  });
+}
+
+function addRecord() {
+  const types = ['vaccine','deworm','litter','checkup'];
+  const names = ['咪咪','小黑','小白','花花','橘橘'];
+  const details = { vaccine:'猫三联', deworm:'内外同驱', litter:'', checkup:'常规体检' };
+  const type = types[Math.floor(Math.random() * types.length)];
+  
+  records.push({
+    id: nextId++,
+    date: new Date().toISOString().slice(0,10),
+    name: names[Math.floor(Math.random() * names.length)],
+    type: type,
+    detail: details[type],
+    note: '测试记录 ' + nextId
+  });
+  renderList();
+}
+
+function resetRecords() {
+  nextId = 4;
+  records = [
+    { id:1, date:'2025-06-09', name:'咪咪', type:'vaccine', detail:'猫三联', note:'年度加强针' },
+    { id:2, date:'2025-06-08', name:'小黑', type:'deworm', detail:'内外同驱', note:'' },
+    { id:3, date:'2025-06-07', name:'小白', type:'litter', detail:'', note:'换了新的豆腐猫砂' }
+  ];
+  renderList();
+}
+
+renderList();
+</script>
+</body>
+</html>

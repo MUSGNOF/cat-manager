@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫咪管理系统 - 功能测试</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; }
+        .test-item { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .success { color: #2ecc71; }
+        .warning { color: #f39c12; }
+        .error { color: #e74c3c; }
+        .code { font-family: monospace; background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>猫咪管理系统 - 功能修复测试</h1>
+    
+    <div class="test-section">
+        <div class="test-title">✅ 修复完成的功能</div>
+        
+        <div class="test-item">
+            <strong>1. 删除功能修复</strong>
+            <p>已修复删除记录后页面不刷新的问题。删除函数现在会：</p>
+            <ul>
+                <li>重新渲染历史记录页面 (renderHistory)</li>
+                <li>重新渲染总览页面 (renderDashboard)</li>
+                <li>重新渲染日历页面 (renderCalendar)</li>
+                <li>更新日历详情面板 (calShowDetail)</li>
+            </ul>
+        </div>
+        
+        <div class="test-item">
+            <strong>2. 日历快速添加功能</strong>
+            <p>在日历每个日期下方添加了"+"按钮，支持：</p>
+            <ul>
+                <li>鼠标悬停显示加号按钮</li>
+                <li>点击自动填充日期到记录表单</li>
+                <li>自动切换到记录页面</li>
+                <li>更新猫咪选择和日期显示</li>
+            </ul>
+        </div>
+        
+        <div class="test-item">
+            <strong>3. 页面结构优化</strong>
+            <p>移除了独立的"记录"页面，将功能整合到日历中：</p>
+            <ul>
+                <li>移除底部导航的"记录"标签</li>
+                <li>总览页面按钮改为"📅 日历视图"</li>
+                <li>日历详情面板添加"+ 新增记录"按钮</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">🔧 技术实现细节</div>
+        
+        <div class="test-item">
+            <strong>删除函数代码：</strong>
+            <div class="code">
+function deleteRecord(id) {
+  if (!confirm('确定删除这条记录吗？')) return;
+  const db=getDB();
+  db.records = db.records.filter(r=>r.id!==id);
+  saveDB(db); 
+  // 重新渲染所有页面
+  renderHistory(); 
+  renderDashboard(); 
+  renderCalendar();
+  // 如果当前在日历详情面板，需要更新详情
+  if (calSelected) calShowDetail(calSelected);
+  showToast('已删除');
+}
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <strong>快速添加函数代码：</strong>
+            <div class="code">
+// 快速添加记录
+function quickAddRecord(date) {
+  // 设置日期
+  document.getElementById('rec-date').value = date;
+  // 切换到记录页面
+  switchTab('record');
+  // 滚动到顶部
+  window.scrollTo(0, 0);
+  // 更新记录页面的猫咪选择和日期
+  updateRecCatToggles();
+  updateRecDate();
+}
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <strong>日历加号按钮样式：</strong>
+            <div class="code">
+.cal-day-content { cursor: pointer; flex: 1; }
+.cal-add-btn {
+  position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--orange); color: white; border: none;
+  font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.2s;
+}
+.cal-day:hover .cal-add-btn { opacity: 1; }
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">📱 使用说明</div>
+        
+        <div class="test-item">
+            <strong>新增记录流程：</strong>
+            <ol>
+                <li>点击底部导航的"日历"标签</li>
+                <li>在日历中找到目标日期</li>
+                <li>鼠标悬停显示"+"按钮</li>
+                <li>点击"+"按钮自动填充日期</li>
+                <li>选择猫咪和记录类型</li>
+                <li>点击"提交记录"完成</li>
+            </ol>
+        </div>
+        
+        <div class="test-item">
+            <strong>删除记录流程：</strong>
+            <ol>
+                <li>在历史记录或日历详情中找到要删除的记录</li>
+                <li>点击记录右侧的"删除"按钮</li>
+                <li>确认删除</li>
+                <li>页面自动刷新显示最新状态</li>
+            </ol>
+        </div>
+        
+        <div class="test-item">
+            <strong>从日历详情新增：</strong>
+            <ol>
+                <li>点击日历中的日期查看详情</li>
+                <li>在详情面板右上角点击"+ 新增记录"</li>
+                <li>自动填充日期并切换到记录页面</li>
+                <li>填写其他信息后提交</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">🚀 下一步建议</div>
+        
+        <div class="test-item">
+            <ul>
+                <li>考虑添加批量删除功能</li>
+                <li>为快速添加按钮添加键盘快捷键</li>
+                <li>优化移动端触摸体验</li>
+                <li>添加删除前的预览功能</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

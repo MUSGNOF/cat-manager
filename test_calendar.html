@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试日历功能</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        button { margin: 10px 0; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>测试日历功能</h1>
+    
+    <div class="test-container">
+        <h3>1. 检查CSS样式</h3>
+        <button onclick="checkCSS()">检查CSS</button>
+        <div id="css-result" class="result"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>2. 检查日历HTML生成</h3>
+        <button onclick="checkCalendarHTML()">检查日历HTML</button>
+        <div id="calendar-result" class="result"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>3. 检查数据</h3>
+        <button onclick="checkData()">检查数据</button>
+        <div id="data-result" class="result"></div>
+    </div>
+    
+    <div class="test-container">
+        <h3>4. 测试日历渲染</h3>
+        <div id="calendar-test" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 20px 0;"></div>
+        <button onclick="testRender()">渲染测试日历</button>
+    </div>
+
+    <script>
+        // 从主页面复制相关函数
+        function getDB() {
+            const dbStr = localStorage.getItem('cat_manager_db');
+            if (!dbStr) return { cats: [], records: [] };
+            try {
+                return JSON.parse(dbStr);
+            } catch {
+                return { cats: [], records: [] };
+            }
+        }
+        
+        function checkCSS() {
+            const result = document.getElementById('css-result');
+            const styles = document.styleSheets;
+            let cssFound = false;
+            let calAddBtnFound = false;
+            
+            for (let i = 0; i < styles.length; i++) {
+                try {
+                    const rules = styles[i].cssRules || styles[i].rules;
+                    if (rules) {
+                        for (let j = 0; j < rules.length; j++) {
+                            const rule = rules[j];
+                            if (rule.selectorText && rule.selectorText.includes('.cal-add-btn')) {
+                                calAddBtnFound = true;
+                                result.innerHTML = '<div style="color: green;">✅ 找到 .cal-add-btn 样式:</div><pre>' + rule.cssText + '</pre>';
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // 忽略跨域样式表错误
+                }
+            }
+            
+            if (!calAddBtnFound) {
+                result.innerHTML = '<div style="color: red;">❌ 未找到 .cal-add-btn 样式</div>';
+            }
+        }
+        
+        function checkCalendarHTML() {
+            const result = document.getElementById('calendar-result');
+            const db = getDB();
+            
+            // 模拟 renderCalendar 函数的部分逻辑
+            const now = new Date();
+            const calYear = now.getFullYear();
+            const calMonth = now.getMonth();
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            
+            let html = '';
+            // 上个月的天数
+            for (let i = 0; i < firstDay; i++) {
+                const prevDate = new Date(calYear, calMonth, -i);
+                const d = prevDate.getDate();
+                html += '<div class="cal-day other-month"><div class="cal-day-content"><span>' + d + '</span></div><button class="cal-add-btn">+</button></div>';
+            }
+            
+            // 本月天数
+            for (let d = 1; d <= daysInMonth; d++) {
+                html += '<div class="cal-day"><div class="cal-day-content"><span>' + d + '</span></div><button class="cal-add-btn">+</button></div>';
+            }
+            
+            result.innerHTML = '<div>生成的HTML示例（前5天）：</div><pre>' + html.substring(0, 500) + '...</pre>';
+            
+            // 检查是否包含 + 按钮
+            if (html.includes('cal-add-btn') && html.includes('+')) {
+                result.innerHTML += '<div style="color: green; margin-top: 10px;">✅ HTML中包含 + 按钮</div>';
+            } else {
+                result.innerHTML += '<div style="color: red; margin-top: 10px;">❌ HTML中不包含 + 按钮</div>';
+            }
+        }
+        
+        function checkData() {
+            const result = document.getElementById('data-result');
+            const db = getDB();
+            
+            let html = '<h4>数据库状态：</h4>';
+            html += '<div>猫咪数量：' + Object.keys(db.cats).length + '</div>';
+            html += '<div>记录数量：' + db.records.length + '</div>';
+            
+            if (db.records.length > 0) {
+                html += '<h4>最近5条记录：</h4>';
+                db.records.slice(0, 5).forEach((record, index) => {
+                    html += '<div style="border: 1px solid #ccc; margin: 5px 0; padding: 5px;">';
+                    html += 'ID: ' + record.id + ', 类型: ' + record.type + ', 日期: ' + record.date;
+                    html += ', 猫咪ID: ' + record.cat_id;
+                    if (record.vacType) html += ', 疫苗类型: ' + record.vacType;
+                    html += '</div>';
+                });
+            }
+            
+            // 检查重复记录
+            const recordMap = {};
+            db.records.forEach((record, index) => {
+                const key = record.cat_id + '-' + record.type + '-' + record.date + (record.subtype || record.vacType || record.item || '');
+                if (recordMap[key]) {
+                    recordMap[key].push(index);
+                } else {
+                    recordMap[key] = [index];
+                }
+            });
+            
+            let duplicateCount = 0;
+            for (const key in recordMap) {
+                if (recordMap[key].length > 1) {
+                    duplicateCount += (recordMap[key].length - 1);
+                }
+            }
+            
+            if (duplicateCount > 0) {
+                html += '<div style="color: red; margin-top: 10px;">⚠️ 发现 ' + duplicateCount + ' 条重复记录</div>';
+            } else {
+                html += '<div style="color: green; margin-top: 10px;">✅ 未发现重复记录</div>';
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function testRender() {
+            const container = document.getElementById('calendar-test');
+            const now = new Date();
+            const calYear = now.getFullYear();
+            const calMonth = now.getMonth();
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            
+            container.innerHTML = '';
+            
+            // 上个月的天数
+            for (let i = 0; i < firstDay; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day other-month';
+                dayDiv.style.border = '1px solid #ddd';
+                dayDiv.style.padding = '10px';
+                dayDiv.style.textAlign = 'center';
+                dayDiv.style.position = 'relative';
+                dayDiv.innerHTML = '<div>前月</div><button style="position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border-radius: 50%; background: #f0854b; color: white; border: none; font-size: 12px;">+</button>';
+                container.appendChild(dayDiv);
+            }
+            
+            // 本月天数
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day';
+                dayDiv.style.border = '1px solid #ddd';
+                dayDiv.style.padding = '10px';
+                dayDiv.style.textAlign = 'center';
+                dayDiv.style.position = 'relative';
+                dayDiv.innerHTML = '<div>' + d + '</div><button style="position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border-radius: 50%; background: #f0854b; color: white; border: none; font-size: 12px;">+</button>';
+                container.appendChild(dayDiv);
+            }
+        }
+    </script>
+</body>
+</html>
