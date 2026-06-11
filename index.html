@@ -2179,10 +2179,21 @@ function hexToRgb(hex) {
 
 // ========== Online/Offline ==========
 function updateOnlineStatus() {
-  isOnline = navigator.onLine;
+  const networkOk = navigator.onLine;
+  const supabaseOk = !!sb;
+  isOnline = networkOk && supabaseOk;
   const dot = document.getElementById('syncDot');
-  dot.className = 'sync-dot ' + (isOnline ? 'online' : 'offline');
-  dot.title = isOnline ? '在线 - 实时同步' : '离线 - 本地存储';
+
+  if (isOnline) {
+    dot.className = 'sync-dot online';
+    dot.title = '在线 - 实时同步';
+  } else if (networkOk && !supabaseOk) {
+    dot.className = 'sync-dot offline';
+    dot.title = '同步服务未连接';
+  } else {
+    dot.className = 'sync-dot offline';
+    dot.title = '离线 - 本地存储';
+  }
 
   if (isOnline) {
     loadRemoteData().then(() => refreshAllViews());
