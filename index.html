@@ -541,7 +541,7 @@ function sbHeaders() {
 function getDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { cats:{}, records:[] }; } catch(e) { return { cats:{}, records:[] }; } }
 function saveDB(db) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  syncToCloud(db).catch(()=>{});
+  syncToCloud(db).catch(()=>{ syncStatus='error'; updateSyncUI(); setTimeout(()=>{syncStatus='idle';updateSyncUI();},3000); });
 }
 
 function generateCatId(db) {
@@ -575,7 +575,7 @@ async function syncToCloud(db) {
   });
   await fetch(SUPABASE_URL + '/rest/v1/records?select=id', { method: 'DELETE', headers: sbHeaders() });
   if (db.records.length > 0) {
-    const recArray = db.records.map(r => ({ cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' }));
+    const recArray = db.records.map(r => ({ id: r.id, cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' }));
     await fetch(SUPABASE_URL + '/rest/v1/records', {
       method: 'POST',
       headers: { ...sbHeaders(), 'Prefer': 'return=minimal' },
@@ -595,7 +595,7 @@ async function pullFromCloud() {
     const recordsList = await recsRes.json();
     const cats = {};
     for (const c of catsList) { const { id, ...rest } = c; cats[id] = rest; }
-    const records = recordsList.map(r => ({ id: 'r'+r.id, cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' })).sort((a,b) => new Date(b.date)-new Date(a.date));
+    const records = recordsList.map(r => ({ id: r.id, cat_id: r.cat_id, type: r.type, date: r.date, note: r.note||'' })).sort((a,b) => new Date(b.date)-new Date(a.date));
     return { cats, records };
   } catch (e) { return null; }
 }
