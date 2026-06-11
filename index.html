@@ -1275,7 +1275,7 @@ function batchDelete() {
   if (!confirm('确定删除选中的 ' + selectedRecords.size + ' 条记录吗？此操作不可撤销。')) return;
 
   const db = getDB();
-  db.records = db.records.filter(r => !selectedRecords.has(r.id));
+  db.records = db.records.filter(r => !selectedRecords.has(r.id) && !selectedRecords.has(parseInt(r.id)));
   saveDB(db);
 
   const deletedCount = selectedRecords.size;
