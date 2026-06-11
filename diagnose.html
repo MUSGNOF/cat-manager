@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>存储诊断</title>
+<style>
+body{font-family:system-ui;max-width:600px;margin:20px auto;padding:16px;background:#f5f5f5}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+h3{margin:0 0 8px;font-size:16px}
+.pass{color:#27ae60}.fail{color:#e74c3c}.warn{color:#e67e22}
+code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:13px;word-break:break-all}
+pre{background:#2d2d2d;color:#e0e0e0;padding:12px;border-radius:8px;overflow-x:auto;max-height:300px;font-size:12px}
+button{padding:8px 16px;border:none;border-radius:8px;background:#f0854b;color:#fff;font-size:14px;cursor:pointer}
+button.danger{background:#e74c3c}
+button{margin-right:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<h2>猫管家 - 存储诊断</h2>
+
+<div class="card">
+<h3>1. localStorage 可用性</h3>
+<p id="diag-ls">检测中...</p>
+</div>
+
+<div class="card">
+<h3>2. 数据库完整性</h3>
+<p id="diag-db">检测中...</p>
+</div>
+
+<div class="card">
+<h3>3. 写入测试</h3>
+<p id="diag-write">检测中...</p>
+<button onclick="testWrite()">执行写入测试</button>
+</div>
+
+<div class="card">
+<h3>4. Supabase 连接</h3>
+<p id="diag-sb">检测中...</p>
+</div>
+
+<div class="card">
+<h3>5. 当前数据内容</h3>
+<pre id="diag-data">加载中...</pre>
+</div>
+
+<div class="card">
+<button onclick="clearAll()" class="danger">清除所有数据（危险）</button>
+<button onclick="location.reload()">重新检测</button>
+</div>
+
+<script>
+const STORAGE_KEY = 'cat_manager_data_v3';
+const SUPABASE_URL = 'https://ctgauwdvffdhdkmtpnnr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0Z2F1d2R2ZmZkaGRrbXRwbm5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5ODQyMzMsImV4cCI6MjA5NjU2MDIzM30.A0PItTHvyzd2ZEdutWoS1gkekn-6BXuG0wPSjmAiEOg';
+
+function el(id){return document.getElementById(id)}
+
+// Test 1: localStorage
+try {
+  localStorage.setItem('_diag_test', 'ok');
+  const val = localStorage.getItem('_diag_test');
+  localStorage.removeItem('_diag_test');
+  if (val === 'ok') {
+    el('diag-ls').innerHTML = '<span class="pass">✅ 正常</span> - 剩余空间约 ' + 
+      (5*1024*1024 - new Blob([JSON.stringify(localStorage)]).size).toLocaleString() + ' bytes';
+  } else {
+    el('diag-ls').innerHTML = '<span class="fail">❌ 读写不一致</span>';
+  }
+} catch(e) {
+  el('diag-ls').innerHTML = '<span class="fail">❌ 异常: ' + e.message + '</span>';
+}
+
+// Test 2: DB
+try {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    el('diag-db').innerHTML = '<span class="warn">⚠️ 数据库为空（无数据）</span>';
+  } else {
+    const db = JSON.parse(raw);
+    const catCount = Object.keys(db.cats||{}).length;
+    const recCount = (db.records||[]).length;
+    const size = new Blob([raw]).size;
+    el('diag-db').innerHTML = '<span class="pass">✅ 正常</span> - ' + catCount + ' 只猫, ' + recCount + ' 条记录, 大小 ' + size + ' bytes';
+    
+    // Show data
+    let dataStr = '猫咪:\n';
+    for (const [id, cat] of Object.entries(db.cats||{})) {
+      dataStr += `  ID=${id}  名字=${cat.name||'?'}  品种=${cat.breed||''}\n`;
+    }
+    dataStr += '\n记录 (最新10条):\n';
+    (db.records||[]).slice(0,10).forEach(r => {
+      dataStr += `  ID=${r.id}  猫=${r.cat_id}  类型=${r.type}  日期=${r.date}\n`;
+    });
+    if ((db.records||[]).length > 10) dataStr += `  ... 共 ${db.records.length} 条\n`;
+    el('diag-data').textContent = dataStr;
+  }
+} catch(e) {
+  el('diag-db').innerHTML = '<span class="fail">❌ 解析失败: ' + e.message + '</span>';
+}
+
+// Test 3: Write test
+function testWrite() {
+  try {
+    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"cats":{},"records":[]}');
+    const testRec = { id: '_test_' + Date.now(), cat_id: '0', type: 'deworm', date: '2026-06-11', subtype: '测试', note: '写入测试' };
+    db.records.unshift(testRec);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    
+    // Verify
+    const verify = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const found = verify.records.find(r => r.id === testRec.id);
+    if (found) {
+      // Clean up
+      verify.records = verify.records.filter(r => r.id !== testRec.id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(verify));
+      el('diag-write').innerHTML = '<span class="pass">✅ 写入成功，已清理</span>';
+    } else {
+      el('diag-write').innerHTML = '<span class="fail">❌ 写入后读取失败</span>';
+    }
+  } catch(e) {
+    el('diag-write').innerHTML = '<span class="fail">❌ 异常: ' + e.message + '</span>';
+  }
+}
+
+// Test 4: Supabase
+(async function(){
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/cats?select=id&limit=1', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    if (res.ok) {
+      el('diag-sb').innerHTML = '<span class="pass">✅ 连接正常</span>';
+    } else {
+      el('diag-sb').innerHTML = '<span class="warn">⚠️ HTTP ' + res.status + ' ' + res.statusText + '</span>';
+    }
+  } catch(e) {
+    el('diag-sb').innerHTML = '<span class="fail">❌ 连接失败: ' + e.message + '</span>';
+  }
+})();
+
+function clearAll() {
+  if (confirm('确定清除所有本地数据？此操作不可恢复！')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+</script>
+</body>
+</html>
