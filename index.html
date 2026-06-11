@@ -1918,24 +1918,30 @@ async function init() {
   // Load local data first
   loadLocalData();
 
-  // Init Supabase
-  const supabaseOk = initSupabase();
-  updateOnlineStatus();
-
-  // Load remote if online
-  if (supabaseOk && navigator.onLine) {
-    await loadRemoteData();
-  }
-
-  // Render
+  // Render immediately with local data (before any network wait)
   refreshAllViews();
 
-  // Setup events
+  // Setup events immediately (critical: must run before any async block)
   setupGlobalEvents();
 
   // Listen for online/offline
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
+
+  // Init Supabase and load remote data in background
+  const supabaseOk = initSupabase();
+  updateOnlineStatus();
+
+  if (supabaseOk && navigator.onLine) {
+    // Use timeout to prevent hanging on slow Supabase responses
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+    try {
+      await Promise.race([loadRemoteData(), timeout]);
+    } catch (e) {
+      console.warn('Remote data load skipped (timeout or offline):', e.message);
+    }
+    refreshAllViews(); // Refresh with merged remote data
+  }
 
   console.log('🐱 猫咪管家 v1.0 初始化完成');
 }
