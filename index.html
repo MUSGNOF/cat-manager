@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>猫咪管家 v1.04</title>
+<title>鐚挭绠″ v1.04</title>
 <style>
 / ========== CSS Variables ========== /
 :root {
@@ -798,31 +798,31 @@ body {
 <div class="app">
   <!-- Header -->
   <header class="header">
-    <span class="header-title"><span class="ears">🐱</span>猫咪管家</span>
-    <span class="sync-dot" id="syncDot" title="连接状态"></span>
+    <span class="header-title"><span class="ears">馃惐</span>鐚挭绠″</span>
+    <span class="sync-dot" id="syncDot" title="杩炴帴鐘舵€?></span>
   </header>
 
   <!-- Dashboard Page -->
   <div class="page active" id="page-dashboard">
     <div class="cats-grid" id="catsGrid"></div>
     <div class="empty-state" id="emptyState" style="display:none">
-      <div class="empty-icon">🐾</div>
-      <div class="empty-text">还没有猫咪档案</div>
-      <div class="empty-hint">点击右下角 + 添加你的第一只猫咪</div>
+      <div class="empty-icon">馃惥</div>
+      <div class="empty-text">杩樻病鏈夌尗鍜。妗?/div>
+      <div class="empty-hint">鐐瑰嚮鍙充笅瑙?+ 娣诲姞浣犵殑绗竴鍙尗鍜?/div>
     </div>
   </div>
 
   <!-- Calendar Page -->
   <div class="page" id="page-calendar">
     <div class="calendar-header">
-      <button class="btn-icon" id="calPrev">◀</button>
+      <button class="btn-icon" id="calPrev">鈼€</button>
       <span class="calendar-month" id="calMonth"></span>
-      <button class="btn-icon" id="calNext">▶</button>
-      <input type="date" class="date-picker-btn" id="calDatePicker" title="快速跳转日期">
-      <button class="btn-today" id="calToday">今天</button>
+      <button class="btn-icon" id="calNext">鈻?/button>
+      <input type="date" class="date-picker-btn" id="calDatePicker" title="蹇€熻烦杞棩鏈?>
+      <button class="btn-today" id="calToday">浠婂ぉ</button>
     </div>
     <div class="weekday-row">
-      <span class="weekend">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="weekend">六</span>
+      <span class="weekend">鏃?/span><span>涓€</span><span>浜?/span><span>涓?/span><span>鍥?/span><span>浜?/span><span class="weekend">鍏?/span>
     </div>
     <div class="calendar-grid" id="calGrid"></div>
     <div class="calendar-relative" id="calRelative"></div>
@@ -832,53 +832,53 @@ body {
   <div class="page" id="page-history">
     <div class="history-header">
       <div class="chip-group" id="historyCatFilter"></div>
-      <button class="btn btn-ghost" id="batchToggle" style="padding:7px 14px;font-size:0.8rem;">选择</button>
+      <button class="btn btn-ghost" id="batchToggle" style="padding:7px 14px;font-size:0.8rem;">閫夋嫨</button>
     </div>
     <div class="batch-bar" id="batchBar">
       <input type="checkbox" id="batchSelectAll">
-      <span>全选 <span class="batch-count" id="batchCount">0</span>/<span id="batchTotal">0</span></span>
-      <button class="btn btn-danger" id="batchDelete" style="margin-left:auto">删除所选</button>
+      <span>鍏ㄩ€?<span class="batch-count" id="batchCount">0</span>/<span id="batchTotal">0</span></span>
+      <button class="btn btn-danger" id="batchDelete" style="margin-left:auto">鍒犻櫎鎵€閫?/button>
     </div>
     <div class="record-list" id="recordList"></div>
     <div class="empty-state" id="historyEmpty" style="display:none">
-      <div class="empty-icon">📋</div>
-      <div class="empty-text">暂无记录</div>
+      <div class="empty-icon">馃搵</div>
+      <div class="empty-text">鏆傛棤璁板綍</div>
     </div>
   </div>
 
   <!-- Settings Page -->
   <div class="page" id="page-settings">
     <div class="settings-section">
-      <h3>主题色</h3>
+      <h3>涓婚鑹?/h3>
       <div class="theme-dots" id="themeDots">
-        <span class="theme-dot" data-theme="#f0854b" style="background:#f0854b" title="暖橙"></span>
-        <span class="theme-dot" data-theme="#2196f3" style="background:#2196f3" title="天空蓝"></span>
-        <span class="theme-dot" data-theme="#4caf50" style="background:#4caf50" title="森林绿"></span>
-        <span class="theme-dot" data-theme="#9c27b0" style="background:#9c27b0" title="梦幻紫"></span>
-        <span class="theme-dot" data-theme="#e91e63" style="background:#e91e63" title="樱花粉"></span>
+        <span class="theme-dot" data-theme="#f0854b" style="background:#f0854b" title="鏆栨"></span>
+        <span class="theme-dot" data-theme="#2196f3" style="background:#2196f3" title="澶╃┖钃?></span>
+        <span class="theme-dot" data-theme="#4caf50" style="background:#4caf50" title="妫灄缁?></span>
+        <span class="theme-dot" data-theme="#9c27b0" style="background:#9c27b0" title="姊﹀够绱?></span>
+        <span class="theme-dot" data-theme="#e91e63" style="background:#e91e63" title="妯辫姳绮?></span>
       </div>
     </div>
     <div class="settings-section">
       <div class="toggle-row">
-        <span class="toggle-label">深色模式</span>
+        <span class="toggle-label">娣辫壊妯″紡</span>
         <div class="toggle" id="darkToggle"></div>
       </div>
     </div>
     <div class="settings-section">
-      <h3>数据统计</h3>
+      <h3>鏁版嵁缁熻</h3>
       <div class="stats-row">
-        <div class="stat-card"><div class="stat-num" id="statCats">0</div><div class="stat-label">猫咪数量</div></div>
-        <div class="stat-card"><div class="stat-num" id="statRecords">0</div><div class="stat-label">记录总数</div></div>
+        <div class="stat-card"><div class="stat-num" id="statCats">0</div><div class="stat-label">鐚挭鏁伴噺</div></div>
+        <div class="stat-card"><div class="stat-num" id="statRecords">0</div><div class="stat-label">璁板綍鎬绘暟</div></div>
       </div>
     </div>
   </div>
 
   <!-- Tab Bar -->
   <nav class="tab-bar">
-    <button class="tab-btn active" data-page="dashboard"><span class="tab-icon">🏠</span>主页</button>
-    <button class="tab-btn" data-page="calendar"><span class="tab-icon">📅</span>日历</button>
-    <button class="tab-btn" data-page="history"><span class="tab-icon">📋</span>历史</button>
-    <button class="tab-btn" data-page="settings"><span class="tab-icon">⚙️</span>设置</button>
+    <button class="tab-btn active" data-page="dashboard"><span class="tab-icon">馃彔</span>涓婚〉</button>
+    <button class="tab-btn" data-page="calendar"><span class="tab-icon">馃搮</span>鏃ュ巻</button>
+    <button class="tab-btn" data-page="history"><span class="tab-icon">馃搵</span>鍘嗗彶</button>
+    <button class="tab-btn" data-page="settings"><span class="tab-icon">鈿欙笍</span>璁剧疆</button>
   </nav>
 
   <!-- FAB -->
@@ -902,12 +902,12 @@ const STORAGE_KEY_THEME = 'catmanager_theme';
 const STORAGE_KEY_DARK = 'catmanager_dark';
 
 const EVENT_TYPES = {
-  deworm: { label: '驱虫', color: '#4caf50' },
-  vaccine: { label: '疫苗', color: '#2196f3' },
-  bath: { label: '洗澡', color: '#00bcd4' },
-  checkup: { label: '体检', color: '#ff9800' },
-  nail_trim: { label: '剪指甲', color: '#9c27b0' },
-  litter_box: { label: '猫砂盆', color: '#795548' }
+  deworm: { label: '椹辫櫕', color: '#4caf50' },
+  vaccine: { label: '鐤嫍', color: '#2196f3' },
+  bath: { label: '娲楁尽', color: '#00bcd4' },
+  checkup: { label: '浣撴', color: '#ff9800' },
+  nail_trim: { label: '鍓寚鐢?, color: '#9c27b0' },
+  litter_box: { label: '鐚爞鐩?, color: '#795548' }
 };
 
 const THEME_COLORS = ['#f0854b', '#2196f3', '#4caf50', '#9c27b0', '#e91e63'];
@@ -938,7 +938,8 @@ function initSupabase() {
     }
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('Supabase client initialized successfully');
-    setupRealtime();
+    // setupRealtime has its own try-catch; don't let it block init
+    try { setupRealtime(); } catch (e) { console.warn('Realtime init threw:', e); }
     return true;
   } catch (e) {
     console.warn('Supabase init failed:', e.message || e);
@@ -1085,7 +1086,7 @@ async function addCat(data) {
   saveLocalCats();
   await saveCatToRemote(cat);
   refreshAllViews();
-  showToast('猫咪已添加', 'success');
+  showToast('鐚挭宸叉坊鍔?, 'success');
 }
 
 async function updateCat(id, data) {
@@ -1095,7 +1096,7 @@ async function updateCat(id, data) {
   saveLocalCats();
   await saveCatToRemote(cats[idx]);
   refreshAllViews();
-  showToast('猫咪信息已更新', 'success');
+  showToast('鐚挭淇℃伅宸叉洿鏂?, 'success');
 }
 
 async function deleteCat(id) {
@@ -1107,7 +1108,7 @@ async function deleteCat(id) {
   saveLocalRecords();
   await deleteCatFromRemote(id);
   refreshAllViews();
-  showToast('猫咪已删除', 'info');
+  showToast('鐚挭宸插垹闄?, 'info');
 }
 
 // ========== Record CRUD ==========
@@ -1117,7 +1118,7 @@ async function addRecord(data) {
   saveLocalRecords();
   await saveRecordToRemote(record);
   refreshCalendarAndHistory();
-  showToast('记录已添加', 'success');
+  showToast('璁板綍宸叉坊鍔?, 'success');
 }
 
 async function deleteRecord(id) {
@@ -1125,7 +1126,7 @@ async function deleteRecord(id) {
   saveLocalRecords();
   await deleteRecordFromRemote(id);
   refreshCalendarAndHistory();
-  showToast('记录已删除', 'info');
+  showToast('璁板綍宸插垹闄?, 'info');
 }
 
 async function deleteRecords(ids) {
@@ -1138,7 +1139,7 @@ async function deleteRecords(ids) {
   }
   selectedRecordIds.clear();
   refreshCalendarAndHistory();
-  showToast(已删除 ${ids.size} 条记录, 'info');
+  showToast(宸插垹闄?${ids.size} 鏉¤褰? 'info');
 }
 
 // ========== UI Refresh ==========
@@ -1168,38 +1169,38 @@ function renderDashboard() {
 
   empty.style.display = 'none';
   grid.innerHTML = cats.map(cat => {
-    const age = cat.birth ? calcAge(cat.birth) : '未知';
+    const age = cat.birth ? calcAge(cat.birth) : '鏈煡';
     const avatarSrc = cat.photo || '';
     const filteredClass = cat.photo && cat.photo.startsWith('data:') ? ' anime-filtered' : '';
     return `
       <div class="cat-card" data-cat-id="${cat.id}">
         <div class="cat-ear"></div>
-        <img class="cat-avatar${filteredClass}" src="${avatarSrc || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect fill="%23e8e0d5" width="64" height="64" rx="32"/><text x="32" y="40" text-anchor="middle" font-size="28">🐱</text></svg>')}" alt="${cat.name}" loading="lazy">
+        <img class="cat-avatar${filteredClass}" src="${avatarSrc || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect fill="%23e8e0d5" width="64" height="64" rx="32"/><text x="32" y="40" text-anchor="middle" font-size="28">馃惐</text></svg>')}" alt="${cat.name}" loading="lazy">
         <div class="cat-name">${escapeHtml(cat.name)}</div>
-        <div class="cat-info">${escapeHtml(cat.breed || '未知品种')} · ${escapeHtml(cat.color || '未知')}</div>
-        <div class="cat-info">${age} · ${cat.weight ? cat.weight + 'kg' : '未知体重'}</div>
+        <div class="cat-info">${escapeHtml(cat.breed || '鏈煡鍝佺')} 路 ${escapeHtml(cat.color || '鏈煡')}</div>
+        <div class="cat-info">${age} 路 ${cat.weight ? cat.weight + 'kg' : '鏈煡浣撻噸'}</div>
       </div>`;
   }).join('');
 }
 
 function calcAge(birthStr) {
-  if (!birthStr) return '未知';
+  if (!birthStr) return '鏈煡';
   const birth = new Date(birthStr);
   const now = new Date();
   let years = now.getFullYear() - birth.getFullYear();
   let months = now.getMonth() - birth.getMonth();
   if (months < 0) { years--; months += 12; }
-  if (years > 0) return ${years}岁${months}个月;
-  if (months > 0) return ${months}个月;
+  if (years > 0) return ${years}宀?{months}涓湀;
+  if (months > 0) return ${months}涓湀;
   const days = Math.floor((now - birth) / 86400000);
-  return ${Math.max(0, days)}天;
+  return ${Math.max(0, days)}澶?
 }
 
 // ========== Calendar Rendering ==========
 function renderCalendar() {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  document.getElementById('calMonth').textContent = ${year}年${month + 1}月;
+  document.getElementById('calMonth').textContent = ${year}骞?{month + 1}鏈?
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1276,11 +1277,11 @@ function updateRelativeDate() {
   today.setHours(0, 0, 0, 0);
   target.setHours(0, 0, 0, 0);
   const diff = Math.round((target - today) / 86400000);
-  if (diff === 0) el.textContent = '今天';
-  else if (diff === 1) el.textContent = '明天';
-  else if (diff === -1) el.textContent = '昨天';
-  else if (diff > 0) el.textContent = ${diff}天后;
-  else el.textContent = ${Math.abs(diff)}天前;
+  if (diff === 0) el.textContent = '浠婂ぉ';
+  else if (diff === 1) el.textContent = '鏄庡ぉ';
+  else if (diff === -1) el.textContent = '鏄ㄥぉ';
+  else if (diff > 0) el.textContent = ${diff}澶╁悗;
+  else el.textContent = ${Math.abs(diff)}澶╁墠;
 }
 
 function formatDateStr(date) {
@@ -1299,8 +1300,8 @@ function renderHistory() {
   const batchToggle = document.getElementById('batchToggle');
 
   const EVENT_ICONS = {
-    deworm: '💊', vaccine: '💉', bath: '🛁',
-    checkup: '🩺', nail_trim: '✂️', litter_box: '🚽'
+    deworm: '馃拪', vaccine: '馃拤', bath: '馃泚',
+    checkup: '馃┖', nail_trim: '鉁傦笍', litter_box: '馃毥'
   };
 
   function formatDateFull(dateStr) {
@@ -1308,12 +1309,12 @@ function renderHistory() {
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
     const day = d.getDate();
-    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-    return ${y}年${m}月${day}日 周${weekdays[d.getDay()]};
+    const weekdays = ['鏃?, '涓€', '浜?, '涓?, '鍥?, '浜?, '鍏?];
+    return ${y}骞?{m}鏈?{day}鏃?鍛?{weekdays[d.getDay()]};
   }
 
   // Cat filter chips
-  filterGroup.innerHTML = <span class="chip${historyCatFilter === 'all' ? ' selected' : ''}" data-cat="all">全部</span> +
+  filterGroup.innerHTML = <span class="chip${historyCatFilter === 'all' ? ' selected' : ''}" data-cat="all">鍏ㄩ儴</span> +
     cats.map(c => <span class="chip${historyCatFilter === c.id ? ' selected' : ''}" data-cat="${c.id}">${escapeHtml(c.name)}</span>).join('');
 
   // Filter records
@@ -1330,9 +1331,9 @@ function renderHistory() {
     empty.style.display = 'none';
     list.innerHTML = filtered.map(r => {
       const cat = findCatById(r.cat_id);
-      const catName = cat ? cat.name : '未知猫咪';
+      const catName = cat ? cat.name : '鏈煡鐚挭';
       const evt = EVENT_TYPES[r.type] || { label: r.type, color: '#999' };
-      const icon = EVENT_ICONS[r.type] || '📌';
+      const icon = EVENT_ICONS[r.type] || '馃搶';
       const checked = selectedRecordIds.has(r.id) ? ' checked' : '';
       const batchCls = batchMode ? ' batch' : '';
       return `
@@ -1345,7 +1346,7 @@ function renderHistory() {
             <span class="record-type-tag tag-${r.type}">${evt.label}</span>
             <span class="record-note">${escapeHtml(r.note || '')}</span>
           </div>
-          <div class="delete-zone">删除</div>
+          <div class="delete-zone">鍒犻櫎</div>
         </div>`;
     }).join('');
   }
@@ -1405,14 +1406,14 @@ function closeModal() {
 // ========== Cat Form Modal ==========
 function showCatForm(cat = null) {
   const isEdit = !!cat;
-  const title = isEdit ? '编辑猫咪' : '添加猫咪';
+  const title = isEdit ? '缂栬緫鐚挭' : '娣诲姞鐚挭';
   const data = cat || { name: '', breed: '', color: '', gender: '', birth: '', weight: '', photo: '' };
 
-  const breedOptions = ['英短', '美短', '布偶', '暹罗', '波斯', '缅因', '橘猫', '狸花', '三花', '奶牛', '折耳', '德文', '无毛', '其他'].map(b =>
+  const breedOptions = ['鑻辩煭', '缇庣煭', '甯冨伓', '鏆圭綏', '娉㈡柉', '缂呭洜', '姗樼尗', '鐙歌姳', '涓夎姳', '濂剁墰', '鎶樿€?, '寰锋枃', '鏃犳瘺', '鍏朵粬'].map(b =>
     <option value="${b}"${data.breed === b ? ' selected' : ''}>${b}</option>
   ).join('');
 
-  const colorOptions = ['白色', '黑色', '橘色', '灰色', '虎斑', '三花', '奶牛色', '重点色', '蓝色', '奶油色', '玳瑁', '其他'].map(c =>
+  const colorOptions = ['鐧借壊', '榛戣壊', '姗樿壊', '鐏拌壊', '铏庢枒', '涓夎姳', '濂剁墰鑹?, '閲嶇偣鑹?, '钃濊壊', '濂舵补鑹?, '鐜崇憗', '鍏朵粬'].map(c =>
     <option value="${c}"${data.color === c ? ' selected' : ''}>${c}</option>
   ).join('');
 
@@ -1420,50 +1421,50 @@ function showCatForm(cat = null) {
     <div class="modal-handle"></div>
     <div class="modal-title">${title}</div>
     <div class="form-group">
-      <label class="form-label">名字 *</label>
-      <input class="form-input" id="catName" value="${escapeHtml(data.name)}" placeholder="给猫咪起个名字" maxlength="30">
+      <label class="form-label">鍚嶅瓧 *</label>
+      <input class="form-input" id="catName" value="${escapeHtml(data.name)}" placeholder="缁欑尗鍜捣涓悕瀛? maxlength="30">
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">品种</label>
-        <input class="form-input" id="catBreed" list="breedList" value="${escapeHtml(data.breed)}" placeholder="选择或输入" autocomplete="off">
+        <label class="form-label">鍝佺</label>
+        <input class="form-input" id="catBreed" list="breedList" value="${escapeHtml(data.breed)}" placeholder="閫夋嫨鎴栬緭鍏? autocomplete="off">
         <datalist id="breedList">${breedOptions}</datalist>
       </div>
       <div class="form-group">
-        <label class="form-label">毛色</label>
-        <input class="form-input" id="catColor" list="colorList" value="${escapeHtml(data.color)}" placeholder="选择或输入" autocomplete="off">
+        <label class="form-label">姣涜壊</label>
+        <input class="form-input" id="catColor" list="colorList" value="${escapeHtml(data.color)}" placeholder="閫夋嫨鎴栬緭鍏? autocomplete="off">
         <datalist id="colorList">${colorOptions}</datalist>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">性别</label>
+        <label class="form-label">鎬у埆</label>
         <div class="chip-group" id="genderChips">
-          <span class="chip${data.gender === '公' ? ' selected' : ''}" data-gender="公">公 🐱</span>
-          <span class="chip${data.gender === '母' ? ' selected' : ''}" data-gender="母">母 🐱</span>
+          <span class="chip${data.gender === '鍏? ? ' selected' : ''}" data-gender="鍏?>鍏?馃惐</span>
+          <span class="chip${data.gender === '姣? ? ' selected' : ''}" data-gender="姣?>姣?馃惐</span>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">出生日期</label>
+        <label class="form-label">鍑虹敓鏃ユ湡</label>
         <input class="form-input" type="date" id="catBirth" value="${data.birth || ''}">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">体重 (kg)</label>
-      <input class="form-input" type="number" id="catWeight" value="${data.weight || ''}" placeholder="例如 4.5" step="0.1" min="0" max="30">
+      <label class="form-label">浣撻噸 (kg)</label>
+      <input class="form-input" type="number" id="catWeight" value="${data.weight || ''}" placeholder="渚嬪 4.5" step="0.1" min="0" max="30">
     </div>
     <div class="form-group">
-      <label class="form-label">照片</label>
+      <label class="form-label">鐓х墖</label>
       <div style="display:flex;align-items:center;gap:12px;">
         <input type="file" id="catPhotoInput" accept="image/*" style="display:none">
-        <button class="btn btn-ghost" id="uploadBtn" style="flex-shrink:0">📷 选择照片</button>
-        <span id="photoStatus" style="font-size:0.78rem;color:var(--text-secondary)">${data.photo ? '已选择照片' : ''}</span>
+        <button class="btn btn-ghost" id="uploadBtn" style="flex-shrink:0">馃摲 閫夋嫨鐓х墖</button>
+        <span id="photoStatus" style="font-size:0.78rem;color:var(--text-secondary)">${data.photo ? '宸查€夋嫨鐓х墖' : ''}</span>
       </div>
       <canvas id="animeCanvas" style="display:none"></canvas>
     </div>
     <div style="display:flex;gap:10px;margin-top:18px;">
-      ${isEdit ? '<button class="btn btn-danger" id="deleteCatBtn" style="flex:1">删除</button>' : ''}
-      <button class="btn btn-primary" id="saveCatBtn" style="flex:1">保存</button>
+      ${isEdit ? '<button class="btn btn-danger" id="deleteCatBtn" style="flex:1">鍒犻櫎</button>' : ''}
+      <button class="btn btn-primary" id="saveCatBtn" style="flex:1">淇濆瓨</button>
     </div>
   `;
 
@@ -1499,20 +1500,20 @@ function setupCatFormEvents(cat) {
       const img = new Image();
       img.onload = function() {
         photoData = applyAnimeFilter(img);
-        photoStatus.textContent = '动漫化处理完成 ✓';
+        photoStatus.textContent = '鍔ㄦ极鍖栧鐞嗗畬鎴?鉁?;
         photoStatus.style.color = '#4caf50';
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
-    photoStatus.textContent = '处理中...';
+    photoStatus.textContent = '澶勭悊涓?..';
   });
 
   // Save
   const saveBtn = document.getElementById('saveCatBtn');
   saveBtn.addEventListener('click', async function() {
     const name = document.getElementById('catName').value.trim();
-    if (!name) { showToast('请输入猫咪名字', 'error'); return; }
+    if (!name) { showToast('璇疯緭鍏ョ尗鍜悕瀛?, 'error'); return; }
 
     const data = {
       name,
@@ -1536,7 +1537,7 @@ function setupCatFormEvents(cat) {
   const delBtn = document.getElementById('deleteCatBtn');
   if (delBtn) {
     delBtn.addEventListener('click', async function() {
-      if (confirm(确定删除 ${cat.name} 的所有档案吗？)) {
+      if (confirm(纭畾鍒犻櫎 ${cat.name} 鐨勬墍鏈夋。妗堝悧锛?) {
         await deleteCat(cat.id);
         closeModal();
       }
@@ -1558,24 +1559,24 @@ function showRecordForm(dateStr) {
 
   const html = `
     <div class="modal-handle"></div>
-    <div class="modal-title">添加记录 · ${dateStr}</div>
+    <div class="modal-title">娣诲姞璁板綍 路 ${dateStr}</div>
     <div class="form-group">
-      <label class="form-label">选择猫咪（可多选）</label>
-      <div class="chip-group" id="recordCatChips">${catChips || '<span style="color:var(--text-muted);font-size:0.8rem;">请先添加猫咪</span>'}</div>
+      <label class="form-label">閫夋嫨鐚挭锛堝彲澶氶€夛級</label>
+      <div class="chip-group" id="recordCatChips">${catChips || '<span style="color:var(--text-muted);font-size:0.8rem;">璇峰厛娣诲姞鐚挭</span>'}</div>
     </div>
     <div class="form-group">
-      <label class="form-label">记录类型</label>
+      <label class="form-label">璁板綍绫诲瀷</label>
       <div class="chip-group" id="recordTypeChips">${typeChips}</div>
     </div>
     <div class="form-group">
-      <label class="form-label">日期</label>
+      <label class="form-label">鏃ユ湡</label>
       <input class="form-input" type="date" id="recordDate" value="${dateStr}">
     </div>
     <div class="form-group">
-      <label class="form-label">备注</label>
-      <input class="form-input" id="recordNote" placeholder="可选备注" maxlength="200">
+      <label class="form-label">澶囨敞</label>
+      <input class="form-input" id="recordNote" placeholder="鍙€夊娉? maxlength="200">
     </div>
-    <button class="btn btn-primary" id="saveRecordBtn">保存记录</button>
+    <button class="btn btn-primary" id="saveRecordBtn">淇濆瓨璁板綍</button>
   `;
 
   showModal(html);
@@ -1607,8 +1608,8 @@ function setupRecordFormEvents() {
 
   // Save
   document.getElementById('saveRecordBtn').addEventListener('click', async function() {
-    if (selectedCatIds.size === 0) { showToast('请至少选择一只猫咪', 'error'); return; }
-    if (!selectedType) { showToast('请选择记录类型', 'error'); return; }
+    if (selectedCatIds.size === 0) { showToast('璇疯嚦灏戦€夋嫨涓€鍙尗鍜?, 'error'); return; }
+    if (!selectedType) { showToast('璇烽€夋嫨璁板綍绫诲瀷', 'error'); return; }
 
     const date = document.getElementById('recordDate').value;
     const note = document.getElementById('recordNote').value.trim();
@@ -2057,7 +2058,7 @@ function setupGlobalEvents() {
     batchMode = !batchMode;
     selectedRecordIds.clear();
     const toggle = document.getElementById('batchToggle');
-    toggle.textContent = batchMode ? '取消' : '选择';
+    toggle.textContent = batchMode ? '鍙栨秷' : '閫夋嫨';
     renderHistory();
   });
 
@@ -2077,11 +2078,11 @@ function setupGlobalEvents() {
 
   // Batch delete
   document.getElementById('batchDelete').addEventListener('click', async function() {
-    if (selectedRecordIds.size === 0) { showToast('请先选择记录', 'error'); return; }
-    if (confirm(确定删除 ${selectedRecordIds.size} 条记录吗？)) {
+    if (selectedRecordIds.size === 0) { showToast('璇峰厛閫夋嫨璁板綍', 'error'); return; }
+    if (confirm(纭畾鍒犻櫎 ${selectedRecordIds.size} 鏉¤褰曞悧锛?) {
       await deleteRecords(selectedRecordIds);
       batchMode = false;
-      document.getElementById('batchToggle').textContent = '选择';
+      document.getElementById('batchToggle').textContent = '閫夋嫨';
       renderHistory();
     }
   });
@@ -2195,13 +2196,13 @@ function updateOnlineStatus() {
 
   if (isOnline) {
     dot.className = 'sync-dot online';
-    dot.title = '在线 - 实时同步';
+    dot.title = '鍦ㄧ嚎 - 瀹炴椂鍚屾';
   } else if (networkOk && !supabaseOk) {
     dot.className = 'sync-dot offline';
-    dot.title = '同步服务未连接';
+    dot.title = '鍚屾鏈嶅姟鏈繛鎺?;
   } else {
     dot.className = 'sync-dot offline';
-    dot.title = '离线 - 本地存储';
+    dot.title = '绂荤嚎 - 鏈湴瀛樺偍';
   }
 
   if (isOnline) {
@@ -2261,7 +2262,7 @@ async function init() {
       if (resolved) { clearInterval(timer); return; }
       if (Date.now() - start > MAX_WAIT) {
         clearInterval(timer);
-        console.warn('Supabase CDN 加载超时，使用本地模式');
+        console.warn('Supabase CDN 鍔犺浇瓒呮椂锛屼娇鐢ㄦ湰鍦版ā寮?);
         done(false);
       }
     }, 300);
@@ -2287,7 +2288,7 @@ async function init() {
     refreshAllViews(); // Refresh with merged remote data
   }
 
-  console.log('🐱 猫咪管家 v1.04 初始化完成');
+  console.log('馃惐 鐚挭绠″ v1.04 鍒濆鍖栧畬鎴?);
 }
 
 document.addEventListener('DOMContentLoaded', init);
